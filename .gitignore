@@ -1,9 +1,12 @@
 KITTI/images/
 KITTI/devkit/
 KITTI/pose_GT/
+datainfo/*
 *.png
 records/
 result/
 models/
 pretrained/
 *.ipynb
+test_df.csv
+test_dump.txt
