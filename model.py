@@ -41,10 +41,10 @@ class DeepVO(nn.Module):
 
         # RNN
         self.rnn = nn.LSTM(
-                    input_size=int(np.prod(__tmp.size())), 
-                    hidden_size=par.rnn_hidden_size, 
-                    num_layers=2, 
-                    dropout=par.rnn_dropout_between, 
+                    input_size=int(np.prod(__tmp.size())),
+                    hidden_size=par.rnn_hidden_size,
+                    num_layers=2,
+                    dropout=par.rnn_dropout_between,
                     batch_first=True)
         self.rnn_drop_out = nn.Dropout(par.rnn_dropout_out)
         self.linear = nn.Linear(in_features=par.rnn_hidden_size, out_features=6)
@@ -80,8 +80,9 @@ class DeepVO(nn.Module):
                 m.bias.data.zero_()
 
 
-    def forward(self, x): 
-        # x: (batch, seq_len, channel, width, height)
+    def forward(self, x):
+        # x  : (batch, seq_len, channel, width, height)
+        # out: (batch, seq_len, 6)
         # stack_image
         x = torch.cat(( x[:, :-1], x[:, 1:]), dim=2)
         batch_size = x.size(0)
@@ -97,7 +98,7 @@ class DeepVO(nn.Module):
         out = self.rnn_drop_out(out)
         out = self.linear(out)
         return out
-        
+
 
     def encode_image(self, x):
         out_conv2 = self.conv2(self.conv1(x))
