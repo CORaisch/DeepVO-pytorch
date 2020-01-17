@@ -40,7 +40,13 @@
 ####
 
 echo "copy data to /scratch/$SLURM_JOB_ID ..."
-cp -r /home/raisch/Datasets/KITTI/* /scratch/$SLURM_JOB_ID
+mkdir /scratch/$SLURM_JOB_ID/images /scratch/$SLURM_JOB_ID/poses_gt
+ids=( "03" "04" )
+for id in "${ids[@]}"
+do
+    cp -rf /home/raisch/Datasets/KITTI/images/$id /scratch/$SLURM_JOB_ID/images
+    cp -rf /home/raisch/Datasets/KITTI/poses_gt/$id.npy /scratch/$SLURM_JOB_ID/poses_gt
+done
 echo " done!"
 
 ####
