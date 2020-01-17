@@ -11,3 +11,4 @@ pretrained/
 *.ipynb
 test_df.csv
 test_dump.txt
+job.*

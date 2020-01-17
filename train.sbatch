@@ -4,7 +4,7 @@
 #a) Define slurm job parameters
 ####
 
-#SBATCH --job-name=cst
+#SBATCH --job-name=DeepVO
 #resources:
 
 #SBATCH --cpus-per-task=4
@@ -39,7 +39,9 @@
 #b) copy all needed data to the jobs scratch folder
 ####
 
+echo "copy data to /scratch/$SLURM_JOB_ID ..."
 cp -r /home/raisch/Datasets/KITTI/* /scratch/$SLURM_JOB_ID
+echo " done!"
 
 ####
 #c) Execute your tensorflow code in a specific singularity container
@@ -50,6 +52,7 @@ cp -r /home/raisch/Datasets/KITTI/* /scratch/$SLURM_JOB_ID
 IMG_FILE=/common/singularityImages/TCML-Cuda10_0Tensorflow2_0_0.simg
 HOME=/home/raisch/DeepVO-pytorch
 
+echo "start training..."
 singularity exec --nv $IMG_FILE python3 $HOME/main.py --remote_dir=/scratch/$SLURM_JOB_ID --home_dir=$HOME
-echo DONE!
+echo " done!"
 
