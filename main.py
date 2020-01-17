@@ -133,7 +133,7 @@ for ep in range(par.epochs):
             v_x = v_x.cuda(non_blocking=par.pin_mem)
             v_y = v_y.cuda(non_blocking=par.pin_mem)
         v_ls = M_deepvo.get_loss(v_x, v_y).data.cpu().numpy()
-        print('loss:', float(ls))
+        print('loss:', float(v_ls))
         v_loss_list.append(float(v_ls))
         loss_mean_valid += float(v_ls)
     loss_mean_valid /= len(valid_dl)
