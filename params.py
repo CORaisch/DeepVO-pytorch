@@ -1,26 +1,27 @@
 import os
 
 class Parameters():
-    def __init__(self):
-        self.n_processors = 0
+    def __init__(self, unpack_to = None):
+        self.n_processors = 4
         # Path
-        self.data_dir =  '/home/claudio/Datasets/KITTI/rgb_sequences/'
-        self.image_dir = self.data_dir + 'images/'
-        self.pose_dir = self.data_dir + 'pose_GT/'
+        self.data_dir =  '/media/claudio/1AC5-C2D4/Datasets/KITTI/DeepVO-pytorch/'
+        self.image_dir = os.path.join(self.data_dir, 'images/')
+        self.pose_dir = os.path.join(self.data_dir, 'poses_gt/')
 
-        # self.train_video = ['00', '01', '02', '05', '08', '09']
-        self.train_video = ['04']
+        self.train_video = ['00', '01', '02', '05', '08', '09']
         self.valid_video = ['04', '06', '07', '10']
-        # self.partition = None  # partition videos in 'train_video' to train / valid dataset  #0.8
-        self.partition = 0.8
+        self.partition = None  # partition videos in 'train_video' to train / valid dataset  #0.8
 
 
         # Data Preprocessing
         self.resize_mode = 'rescale'  # choice: 'crop' 'rescale' None
         self.img_w = 608   # original size is about 1226
         self.img_h = 184   # original size is about 370
-        self.img_means =  (0.19007764876619865, 0.15170388157131237, 0.10659445665650864)
-        self.img_stds =  (0.2610784009469139, 0.25729316928935814, 0.25163823815039915)
+        self.img_means = (-0.15116102640573548, -0.1322411015338543, -0.13887598313286317)
+        self.img_stds = (0.31308950448998596, 0.3176070324487968, 0.3232656266278995)
+        # NOTE mean and std values of 'alexart13'
+        # self.img_means =  (0.19007764876619865, 0.15170388157131237, 0.10659445665650864)
+        # self.img_stds =  (0.2610784009469139, 0.25729316928935814, 0.25163823815039915)
         self.minus_point_5 = True
 
         self.seq_len = (5, 7)
@@ -50,7 +51,7 @@ class Parameters():
 
         # Pretrain, Resume training
         # self.pretrained_flownet = None
-        self.pretrained_flownet = './pretrained/flownets_EPE1.951.pth.tar'
+        self.pretrained_flownet = 'pretrained/flownets_EPE1.951.pth.tar'
                                 # Choice:
                                 # None
                                 # './pretrained/flownets_bn_EPE2.459.pth.tar'
@@ -74,6 +75,23 @@ class Parameters():
             os.makedirs(os.path.dirname(self.save_optimzer_path))
         if not os.path.isdir(os.path.dirname(self.train_data_info_path)):
             os.makedirs(os.path.dirname(self.train_data_info_path))
+
+    def set_remote_dir(self, remote_dir):
+        if remote_dir:
+            self.data_dir = remote_dir
+            self.image_dir = os.path.join(self.data_dir, 'images/')
+            self.pose_dir = os.path.join(self.data_dir, 'poses_gt/')
+
+    def set_home_dir(self, home_dir):
+        if home_dir:
+            self.train_data_info_path = os.path.join(home_dir, self.train_data_info_path)
+            self.valid_data_info_path = os.path.join(home_dir, self.valid_data_info_path)
+            self.pretrained_flownet = os.path.join(home_dir, self.pretrained_flownet)
+            self.load_model_path = os.path.join(home_dir, self.load_model_path)
+            self.load_optimizer_path = os.path.join(home_dir, self.load_optimizer_path)
+            self.record_path = os.path.join(home_dir, self.record_path)
+            self.save_model_path = os.path.join(home_dir, self.save_model_path)
+            self.save_optimzer_path = os.path.join(home_dir, self.save_optimzer_path)
 
 par = Parameters()
 

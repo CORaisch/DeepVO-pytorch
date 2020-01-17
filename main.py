@@ -1,13 +1,21 @@
 import torch
 from torch.utils.data import DataLoader
 import numpy as np
-import os
+import os, argparse
 import time
 import pandas as pd
 from params import par
 from model import DeepVO
 from data_helper import get_data_info, SortedRandomBatchSampler, ImageSequenceDataset, get_partition_data_info
 
+# parse passed arguments
+argparser = argparse.ArgumentParser(description="DeepVO Training")
+argparser.add_argument('--remote_dir', '-remote', type=str, default=None, help="If train on cluster set this to the remote directory like \'/scratch/X\'. All datasets used for training will be copied to this directory.")
+argparser.add_argument('--home_dir', '-home', type=str, default=None, help="If train on cluster set this to the home directory. Data like models and weights will be read from there and checkpoints will be written to there too.")
+args = argparser.parse_args()
+# update directories when executing on cluster
+par.set_remote_dir(args.remote_dir)
+par.set_home_dir(args.home_dir)
 
 # Write all hyperparameters to record_path
 mode = 'a' if par.resume else 'w'
