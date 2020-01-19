@@ -4,7 +4,7 @@
 #a) Define slurm job parameters
 ####
 
-#SBATCH --job-name=DeepVO_train
+#SBATCH --job-name=DeepVO_test
 #resources:
 
 #SBATCH --cpus-per-task=4
@@ -42,6 +42,7 @@
 #echo "extract data to /scratch/$SLURM_JOB_ID:"
 #tar -xvzf /home/raisch/Datasets/KITTI/DeepVO-KITTI.tar.gz -C /scratch/$SLURM_JOB_ID
 # TODO figure out how to extract only a subset of the data in tar archive
+
 echo "copy data to /scratch/$SLURM_JOB_ID:"
 mkdir /scratch/$SLURM_JOB_ID/images /scratch/$SLURM_JOB_ID/poses_gt
 ids=( "00" "01" "02" "03" "04" "05" "06" "07" "08" "09" "10" )
@@ -52,7 +53,6 @@ do
      rsync --info=progress2 /home/raisch/Datasets/KITTI/poses_gt/$id.* /scratch/$SLURM_JOB_ID/poses_gt
 done
 ls -l /scratch/$SLURM_JOB_ID
-ls -l /scratch/$SLURM_JOB_ID/images
 ls -l /scratch/$SLURM_JOB_ID/poses_gt
 du -sh /scratch/$SLURM_JOB_ID
 
@@ -66,6 +66,6 @@ IMG_FILE=/common/singularityImages/TCML-Cuda10_0Tensorflow2_0_0.simg
 HOME=/home/raisch/DeepVO-pytorch
 
 echo "executing training..."
-singularity exec --nv $IMG_FILE python3 $HOME/main.py --remote_dir=/scratch/$SLURM_JOB_ID --home_dir=$HOME
+singularity exec --nv $IMG_FILE python3 $HOME/test.py --remote_dir=/scratch/$SLURM_JOB_ID --home_dir=$HOME
 echo " done!"
 

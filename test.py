@@ -11,6 +11,15 @@ from data_helper import get_data_info, ImageSequenceDataset
 from torch.utils.data import DataLoader
 from helper import eulerAnglesToRotationMatrix
 
+# parse passed arguments
+argparser = argparse.ArgumentParser(description="DeepVO Testing")
+argparser.add_argument('--remote_dir', '-remote', type=str, default=None, help="If test on cluster set this to the remote directory like \'/scratch/X\'. All datasets used for testing will be copied to this directory.")
+argparser.add_argument('--home_dir', '-home', type=str, default=None, help="If test on cluster set this to the home directory. Data like models and weights will be read from there and checkpoints will be written to there too.")
+args = argparser.parse_args()
+# update directories when executing on cluster
+par.set_remote_dir(args.remote_dir)
+par.set_home_dir(args.home_dir)
+
 if __name__ == '__main__':
 
     # Specify videos to test
