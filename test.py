@@ -13,12 +13,12 @@ from helper import eulerAnglesToRotationMatrix
 
 if __name__ == '__main__':
 
+    # Specify videos to test
     videos_to_test = ['00', '01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
-    # videos_to_test = ['03', '04']
 
     # Path
     load_model_path = par.load_model_path   #choose the model you want to load
-    save_dir = 'models/t000102050809_v04060710_ep250/results'  # directory to save prediction answer
+    save_dir = 'results'  # directory to save prediction answer
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
