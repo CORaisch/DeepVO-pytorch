@@ -1,11 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import time
+import os, time, argparse
 from params import par
-
-pose_GT_dir = par.pose_dir  #'KITTI/pose_GT/'
-predicted_result_dir = './result/'
-gradient_color = True
 
 def plot_route(gt, out, c_gt='g', c_out='r'):
     x_idx = 3
@@ -21,6 +17,16 @@ def plot_route(gt, out, c_gt='g', c_out='r'):
     #plt.scatter(x, y, color='b')
     plt.gca().set_aspect('equal', adjustable='datalim')
 
+# parse passed arguments
+argparser = argparse.ArgumentParser(description="DeepVO Visualization")
+argparser.add_argument('--results_dir', '-results', type=str, default=None, help="directory where the results are stored.")
+argparser.add_argument('--gradient_color', '-gradient', action='store_true', help="when set trajectory will be colorized depending on local error.")
+args = argparser.parse_args()
+
+# setup directories and config
+pose_GT_dir = par.pose_dir
+predicted_result_dir = args.results_dir
+gradient_color = args.gradient_color
 
 # Load in GT and predicted pose
 video_list = ['00', '01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
@@ -31,7 +37,7 @@ for video in video_list:
 
     GT_pose_path = '{}{}.npy'.format(pose_GT_dir, video)
     gt = np.load(GT_pose_path)
-    pose_result_path = '{}out_{}.txt'.format(predicted_result_dir, video)
+    pose_result_path = os.path.join(predicted_result_dir, 'out_{}.txt'.format(video))
     with open(pose_result_path) as f_out:
         out = [l.split('\n')[0] for l in f_out.readlines()]
         for i, line in enumerate(out):
@@ -57,7 +63,7 @@ for video in video_list:
             if st == 0:
                 plt.legend()
             plt.title('Video {}'.format(video))
-            save_name = '{}route_{}_gradient.png'.format(predicted_result_dir, video)
+            save_name = os.path.join(predicted_result_dir, 'route_{}_gradient.png'.format(video))
         plt.savefig(save_name)
     else:
         # plot one color
@@ -66,5 +72,5 @@ for video in video_list:
         plot_route(gt, out, 'r', 'b')
         plt.legend()
         plt.title('Video {}'.format(video))
-        save_name = '{}route_{}.png'.format(predicted_result_dir, video)
+        save_name = os.path.join(predicted_result_dir, 'route_{}.png'.format(video))
         plt.savefig(save_name)

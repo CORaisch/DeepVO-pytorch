@@ -117,7 +117,7 @@ if __name__ == '__main__':
 
 
         # Save answer
-        with open('{}/out_{}.txt'.format(save_dir, test_video), 'w') as f:
+        with open(os.path.join(save_dir, 'out_{}.txt'.format(test_video)), 'w') as f:
             for pose in answer:
                 if type(pose) == list:
                     f.write(', '.join([str(p) for p in pose]))
@@ -127,7 +127,7 @@ if __name__ == '__main__':
 
 
         # Calculate loss
-        gt_pose = np.load('{}{}.npy'.format(par.pose_dir, test_video))  # (n_images, 6)
+        gt_pose = np.load(os.path.join(par.pose_dir, '{}.npy'.format(test_video)))  # (n_images, 6)
         loss = 0
         for t in range(len(gt_pose)):
             angle_loss = np.sum((answer[t][:3] - gt_pose[t,:3]) ** 2)
