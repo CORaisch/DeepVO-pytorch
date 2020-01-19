@@ -65,7 +65,7 @@ du -sh /scratch/$SLURM_JOB_ID
 IMG_FILE=/common/singularityImages/TCML-Cuda10_0Tensorflow2_0_0.simg
 HOME=/home/raisch/DeepVO-pytorch
 
-echo "executing training..."
+echo "executing testing..."
 singularity exec --nv $IMG_FILE python3 $HOME/test.py --remote_dir=/scratch/$SLURM_JOB_ID --home_dir=$HOME
 echo " done!"
 

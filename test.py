@@ -3,9 +3,7 @@ from params import par
 from model import DeepVO
 import numpy as np
 from PIL import Image
-import glob
-import os
-import time
+import glob, os, time, argparse
 import torch
 from data_helper import get_data_info, ImageSequenceDataset
 from torch.utils.data import DataLoader
