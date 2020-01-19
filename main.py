@@ -12,10 +12,12 @@ from data_helper import get_data_info, SortedRandomBatchSampler, ImageSequenceDa
 argparser = argparse.ArgumentParser(description="DeepVO Training")
 argparser.add_argument('--remote_dir', '-remote', type=str, default=None, help="If train on cluster set this to the remote directory like \'/scratch/X\'. All datasets used for training will be copied to this directory.")
 argparser.add_argument('--home_dir', '-home', type=str, default=None, help="If train on cluster set this to the home directory. Data like models and weights will be read from there and checkpoints will be written to there too.")
+argparser.add_argument('--resume', '-resume', action='store_true', help="If set training will resume from given model.")
 args = argparser.parse_args()
 # update directories when executing on cluster
 par.set_remote_dir(args.remote_dir)
 par.set_home_dir(args.home_dir)
+par.set_resume(args.resume)
 
 # Write all hyperparameters to record_path
 mode = 'a' if par.resume else 'w'
@@ -25,22 +27,15 @@ with open(par.record_path, mode) as f:
     f.write('\n'+'='*50 + '\n')
 
 # Prepare Data
-if os.path.isfile(par.train_data_info_path) and os.path.isfile(par.valid_data_info_path):
-    print('Load data info from {}'.format(par.train_data_info_path))
-    train_df = pd.read_pickle(par.train_data_info_path)
-    valid_df = pd.read_pickle(par.valid_data_info_path)
+print('Subsequence Trajectories')
+if par.partition != None:
+    partition = par.partition
+    train_df, valid_df = get_partition_data_info(partition, par.train_video, par.seq_len, overlap=1, sample_times=par.sample_times, shuffle=True, sort=True)
 else:
-    print('Create new data info')
-    if par.partition != None:
-        partition = par.partition
-        train_df, valid_df = get_partition_data_info(partition, par.train_video, par.seq_len, overlap=1, sample_times=par.sample_times, shuffle=True, sort=True)
-    else:
-        train_df = get_data_info(folder_list=par.train_video, seq_len_range=par.seq_len, overlap=1, sample_times=par.sample_times)
-        valid_df = get_data_info(folder_list=par.valid_video, seq_len_range=par.seq_len, overlap=1, sample_times=par.sample_times)
-    # save the data info
-    train_df.to_pickle(par.train_data_info_path)
-    valid_df.to_pickle(par.valid_data_info_path)
+    train_df = get_data_info(folder_list=par.train_video, seq_len_range=par.seq_len, overlap=1, sample_times=par.sample_times)
+    valid_df = get_data_info(folder_list=par.valid_video, seq_len_range=par.seq_len, overlap=1, sample_times=par.sample_times)
 
+print('Create Dataset')
 train_sampler = SortedRandomBatchSampler(train_df, par.batch_size, drop_last=True)
 train_dataset = ImageSequenceDataset(train_df, par.resize_mode, (par.img_w, par.img_h), par.img_means, par.img_stds, par.minus_point_5)
 train_dl = DataLoader(train_dataset, batch_sampler=train_sampler, num_workers=par.n_processors, pin_memory=par.pin_mem)
@@ -58,7 +53,7 @@ print('='*50)
 M_deepvo = DeepVO(par.img_h, par.img_w, par.batch_norm)
 use_cuda = torch.cuda.is_available()
 if use_cuda:
-    print('CUDA used.')
+    print('CUDA enabled')
     M_deepvo = M_deepvo.cuda()
 
 
