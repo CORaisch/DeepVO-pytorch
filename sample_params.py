@@ -61,6 +61,8 @@ class Parameters():
         self.resume_t_or_v = '.train'
         self.load_model_path = 'models/t{}_v{}_im{}x{}_s{}x{}_b{}_rnn{}_{}.model{}'.format(''.join(self.train_video), ''.join(self.valid_video), self.img_h, self.img_w, self.seq_len[0], self.seq_len[1], self.batch_size, self.rnn_hidden_size, '_'.join([k+str(v) for k, v in self.optim.items()]), self.resume_t_or_v)
         self.load_optimizer_path = 'models/t{}_v{}_im{}x{}_s{}x{}_b{}_rnn{}_{}.optimizer{}'.format(''.join(self.train_video), ''.join(self.valid_video), self.img_h, self.img_w, self.seq_len[0], self.seq_len[1], self.batch_size, self.rnn_hidden_size, '_'.join([k+str(v) for k, v in self.optim.items()]), self.resume_t_or_v)
+        # self.load_model_path = './models/t000102050809_v04060710_ep250/models/t000102050809_v04060710_im184x608_s5x7_b8_rnn1000_optAdagrad_lr0.0005.model.valid'
+        # self.load_optimizer_path = './models/t000102050809_v04060710_ep250/models/t000102050809_v04060710_im184x608_s5x7_b8_rnn1000_optAdagrad_lr0.0005.optimizer.valid'
 
         self.record_path = 'records/t{}_v{}_im{}x{}_s{}x{}_b{}_rnn{}_{}.txt'.format(''.join(self.train_video), ''.join(self.valid_video), self.img_h, self.img_w, self.seq_len[0], self.seq_len[1], self.batch_size, self.rnn_hidden_size, '_'.join([k+str(v) for k, v in self.optim.items()]))
         self.save_model_path = 'models/t{}_v{}_im{}x{}_s{}x{}_b{}_rnn{}_{}.model'.format(''.join(self.train_video), ''.join(self.valid_video), self.img_h, self.img_w, self.seq_len[0], self.seq_len[1], self.batch_size, self.rnn_hidden_size, '_'.join([k+str(v) for k, v in self.optim.items()]))
@@ -86,7 +88,8 @@ class Parameters():
         if home_dir:
             self.train_data_info_path = os.path.join(home_dir, self.train_data_info_path)
             self.valid_data_info_path = os.path.join(home_dir, self.valid_data_info_path)
-            self.pretrained_flownet = os.path.join(home_dir, self.pretrained_flownet)
+            if self.pretrained_flownet:
+                self.pretrained_flownet = os.path.join(home_dir, self.pretrained_flownet)
             self.load_model_path = os.path.join(home_dir, self.load_model_path)
             self.load_optimizer_path = os.path.join(home_dir, self.load_optimizer_path)
             self.record_path = os.path.join(home_dir, self.record_path)
