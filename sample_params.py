@@ -17,11 +17,12 @@ class Parameters():
         self.resize_mode = 'rescale'  # choice: 'crop' 'rescale' None
         self.img_w = 608   # original size is about 1226
         self.img_h = 184   # original size is about 370
+        # means and std for kitti rgb image sequence [00, 01, 02, 03, 04, 05, 06, 07, 08, 09, 10]
         self.img_means = (-0.15116102640573548, -0.1322411015338543, -0.13887598313286317)
         self.img_stds = (0.31308950448998596, 0.3176070324487968, 0.3232656266278995)
-        # NOTE mean and std values of 'alexart13'
-        # self.img_means =  (0.19007764876619865, 0.15170388157131237, 0.10659445665650864)
-        # self.img_stds =  (0.2610784009469139, 0.25729316928935814, 0.25163823815039915)
+        # means and std for kitti grayscale image sequence [00, 01, 02, 03, 04, 05, 06, 07, 08, 09, 10]
+        # self.img_means = (-0.14046805191159092, -0.14046805191159092, -0.14046805191159092)
+        # self.img_stds = (0.3128824310845576, 0.3128824310845576, 0.3128824310845576)
         self.minus_point_5 = True
 
         self.seq_len = (5, 7)
@@ -95,6 +96,9 @@ class Parameters():
             self.record_path = os.path.join(home_dir, self.record_path)
             self.save_model_path = os.path.join(home_dir, self.save_model_path)
             self.save_optimzer_path = os.path.join(home_dir, self.save_optimzer_path)
+
+    def set_resume(self, val):
+        self.resume = val
 
 par = Parameters()
 
