@@ -189,6 +189,8 @@ class ImageSequenceDataset(Dataset):
             transform_ops.append(transforms.CenterCrop((new_sizeize[0], new_sizeize[1])))
         elif resize_mode == 'rescale':
             transform_ops.append(transforms.Resize((new_sizeize[0], new_sizeize[1])))
+        if par.grayscale:
+            transform_ops.append(transforms.Grayscale(num_output_channels=3))
         transform_ops.append(transforms.ToTensor())
         #transform_ops.append(transforms.Normalize(mean=img_mean, std=img_std))
         self.transformer = transforms.Compose(transform_ops)
@@ -239,6 +241,7 @@ class ImageSequenceDataset(Dataset):
             if self.minus_point_5:
                 img_as_tensor = img_as_tensor - 0.5  # from [0, 1] -> [-0.5, 0.5]
             img_as_tensor = self.normalizer(img_as_tensor)
+            # show_tensor_image(img_as_tensor, title="image after transformer")
             img_as_tensor = img_as_tensor.unsqueeze(0)
             image_sequence.append(img_as_tensor)
         image_sequence = torch.cat(image_sequence, 0)
@@ -247,7 +250,22 @@ class ImageSequenceDataset(Dataset):
     def __len__(self):
         return len(self.data_info.index)
 
+def show_tensor_image(image, title="", colormap=None):
+    import matplotlib.pyplot as plt
+    import torchvision.transforms.functional as TF
+    sample_image = TF.to_pil_image(image)
+    if colormap == "gray":
+        sample_image = TF.to_grayscale(sample_image, num_output_channels=1)
+    plt.imshow(sample_image, cmap=colormap)
+    plt.title(title)
+    plt.show()
 
+def show_pil_image(image, title="", colormap=None):
+    import matplotlib.pyplot as plt
+    import torchvision.transforms.functional as TF
+    plt.imshow(image, cmap=colormap)
+    plt.title(title)
+    plt.show()
 
 # Example of usage
 if __name__ == '__main__':

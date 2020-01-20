@@ -74,6 +74,8 @@ def calculate_rgb_mean_std(image_path_list, minus_point_5=False):
     for idx, img_path in enumerate(image_path_list):
         print('{} / {}'.format(idx, n_images), end='\r')
         img_as_img = Image.open(img_path)
+        if par.grayscale:
+            img_as_img = transforms.functional.to_grayscale(img_as_img, num_output_channels=3)
         img_as_tensor = to_tensor(img_as_img)
         if minus_point_5:
             img_as_tensor = img_as_tensor - 0.5
@@ -93,6 +95,8 @@ def calculate_rgb_mean_std(image_path_list, minus_point_5=False):
     for idx, img_path in enumerate(image_path_list):
         print('{} / {}'.format(idx, n_images), end='\r')
         img_as_img = Image.open(img_path)
+        if par.grayscale:
+            img_as_img = transforms.functional.to_grayscale(img_as_img, num_output_channels=3)
         img_as_tensor = to_tensor(img_as_img)
         if minus_point_5:
             img_as_tensor = img_as_tensor - 0.5
