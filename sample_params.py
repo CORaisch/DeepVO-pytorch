@@ -14,6 +14,8 @@ class Parameters():
 
 
         # Data Preprocessing
+        self.grayscale = False # specifiy if grayscale images should be used for training/testing
+        self.laplace_preprocessing = False # enable laplace preprocessing NOTE instead of normalizing the inputs with mean and std images will be laplace filtered
         self.resize_mode = 'rescale'  # choice: 'crop' 'rescale' None
         self.img_w = 608   # original size is about 1226
         self.img_h = 184   # original size is about 370
