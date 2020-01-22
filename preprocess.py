@@ -117,9 +117,11 @@ if __name__ == '__main__':
     clean_unused_images()
     create_pose_data()
 
-    # Calculate RGB means of images in training videos
-    train_video = par.train_video
-    image_path_list = []
-    for folder in train_video:
-        image_path_list += glob.glob('{}{}/*.png'.format(par.image_dir, folder))
-    calculate_rgb_mean_std(image_path_list, minus_point_5=par.minus_point_5)
+    # if no laplace preprocessing, then preprocess by normalizing image inputs with mean and std (as done in DeepVO paper)
+    if not par.laplace_preprocessing:
+        # Calculate RGB means of images in training videos
+        train_video = par.train_video
+        image_path_list = []
+        for folder in train_video:
+            image_path_list += glob.glob('{}/*.png'.format(os.path.join(par.image_dir, folder)))
+        calculate_rgb_mean_std(image_path_list, minus_point_5=par.minus_point_5)

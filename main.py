@@ -37,10 +37,12 @@ else:
 
 print('Create Dataset')
 train_sampler = SortedRandomBatchSampler(train_df, par.batch_size, drop_last=True)
+# train_dataset = ImageSequenceDataset(valid_df, par.resize_mode, (par.img_h, par.img_w), par.img_means, par.img_stds, par.minus_point_5) # NOTE why swap h and w ?
 train_dataset = ImageSequenceDataset(train_df, par.resize_mode, (par.img_w, par.img_h), par.img_means, par.img_stds, par.minus_point_5)
 train_dl = DataLoader(train_dataset, batch_sampler=train_sampler, num_workers=par.n_processors, pin_memory=par.pin_mem)
 
 valid_sampler = SortedRandomBatchSampler(valid_df, par.batch_size, drop_last=True)
+# valid_dataset = ImageSequenceDataset(valid_df, par.resize_mode, (par.img_h, par.img_w), par.img_means, par.img_stds, par.minus_point_5) # NOTE why swap h and w ?
 valid_dataset = ImageSequenceDataset(valid_df, par.resize_mode, (par.img_w, par.img_h), par.img_means, par.img_stds, par.minus_point_5)
 valid_dl = DataLoader(valid_dataset, batch_sampler=valid_sampler, num_workers=par.n_processors, pin_memory=par.pin_mem)
 

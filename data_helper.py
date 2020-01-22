@@ -179,7 +179,7 @@ class SortedRandomBatchSampler(Sampler):
         return self.len
 
 
-# NOTE is sequence_len_list neccesarry ? smells like its rudimentary
+# NOTE is sequence_len_list neccesarry ? seems like its rudimentary
 # NOTE check if pose conversion works properly ! else substitute with my code
 class ImageSequenceDataset(Dataset):
     def __init__(self, info_dataframe, resize_mode='crop', new_sizeize=None, img_mean=None, img_std=(1,1,1), minus_point_5=False):
@@ -191,6 +191,8 @@ class ImageSequenceDataset(Dataset):
             transform_ops.append(transforms.Resize((new_sizeize[0], new_sizeize[1])))
         if par.grayscale:
             transform_ops.append(transforms.Grayscale(num_output_channels=3))
+        if par.laplace_preprocessing:
+            transform_ops.append(transforms.Lambda(preprocess_laplace))
         transform_ops.append(transforms.ToTensor())
         #transform_ops.append(transforms.Normalize(mean=img_mean, std=img_std))
         self.transformer = transforms.Compose(transform_ops)
@@ -240,8 +242,13 @@ class ImageSequenceDataset(Dataset):
             img_as_tensor = self.transformer(img_as_img)
             if self.minus_point_5:
                 img_as_tensor = img_as_tensor - 0.5  # from [0, 1] -> [-0.5, 0.5]
-            img_as_tensor = self.normalizer(img_as_tensor)
+            if not par.laplace_preprocessing: # NOTE only normalize if NO laplace preprocessing applied
+                img_as_tensor = self.normalizer(img_as_tensor)
+
+            # # beg DEBUG
             # show_tensor_image(img_as_tensor, title="image after transformer")
+            # # end DEBUG
+
             img_as_tensor = img_as_tensor.unsqueeze(0)
             image_sequence.append(img_as_tensor)
         image_sequence = torch.cat(image_sequence, 0)
@@ -250,12 +257,24 @@ class ImageSequenceDataset(Dataset):
     def __len__(self):
         return len(self.data_info.index)
 
+def preprocess_laplace(im):
+    import cv2 as cv
+    rad = 3
+    im  = np.array(im)
+    s   = im.shape
+    out = np.zeros((s[0],s[1],3), dtype=im.dtype)
+    for c in range(3):
+        layer = im[:,:,c]
+        layer = cv.medianBlur(layer, rad)
+        layer = cv.Laplacian(layer, cv.CV_16S, ksize=rad)
+        layer = cv.convertScaleAbs(layer)
+        out[:,:,c] = layer
+    return Image.fromarray(out)
+
 def show_tensor_image(image, title="", colormap=None):
     import matplotlib.pyplot as plt
     import torchvision.transforms.functional as TF
     sample_image = TF.to_pil_image(image)
-    if colormap == "gray":
-        sample_image = TF.to_grayscale(sample_image, num_output_channels=1)
     plt.imshow(sample_image, cmap=colormap)
     plt.title(title)
     plt.show()
