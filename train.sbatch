@@ -39,9 +39,6 @@
 #b) copy all needed data to the jobs scratch folder
 ####
 
-#echo "extract data to /scratch/$SLURM_JOB_ID:"
-#tar -xvzf /home/raisch/Datasets/KITTI/DeepVO-KITTI.tar.gz -C /scratch/$SLURM_JOB_ID
-# TODO figure out how to extract only a subset of the data in tar archive
 echo "copy data to /scratch/$SLURM_JOB_ID:"
 mkdir /scratch/$SLURM_JOB_ID/images /scratch/$SLURM_JOB_ID/poses_gt
 ids=( "00" "01" "02" "03" "04" "05" "06" "07" "08" "09" "10" )
