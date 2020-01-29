@@ -5,7 +5,7 @@ KITTI/pose_GT/
 datainfo/*
 *.png
 records/
-result/
+results/*
 models/
 pretrained/
 *.ipynb
