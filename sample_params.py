@@ -4,7 +4,7 @@ class Parameters():
     def __init__(self, unpack_to = None):
         self.n_processors = 4
         # Path
-        self.data_dir =  '/media/claudio/1AC5-C2D4/Datasets/KITTI/DeepVO-pytorch/'
+        self.data_dir =  '/media/claudio/Cluster/Datasets/KITTI/'
         self.image_dir = os.path.join(self.data_dir, 'images/')
         self.pose_dir = os.path.join(self.data_dir, 'poses_gt/')
 
@@ -43,7 +43,7 @@ class Parameters():
         self.clip = None
         self.batch_norm = True
         # Training
-        self.epochs = 250
+        self.epochs = 400
         self.batch_size = 8
         self.pin_mem = True
         self.optim = {'opt': 'Adagrad', 'lr': 0.0005}
@@ -62,14 +62,16 @@ class Parameters():
         # self.resume = True  # resume training
         self.resume = False
         self.resume_t_or_v = '.train'
-        self.load_model_path = 'models/t{}_v{}_im{}x{}_s{}x{}_b{}_rnn{}_{}.model{}'.format(''.join(self.train_video), ''.join(self.valid_video), self.img_h, self.img_w, self.seq_len[0], self.seq_len[1], self.batch_size, self.rnn_hidden_size, '_'.join([k+str(v) for k, v in self.optim.items()]), self.resume_t_or_v)
-        self.load_optimizer_path = 'models/t{}_v{}_im{}x{}_s{}x{}_b{}_rnn{}_{}.optimizer{}'.format(''.join(self.train_video), ''.join(self.valid_video), self.img_h, self.img_w, self.seq_len[0], self.seq_len[1], self.batch_size, self.rnn_hidden_size, '_'.join([k+str(v) for k, v in self.optim.items()]), self.resume_t_or_v)
-        # self.load_model_path = './models/t000102050809_v04060710_ep250/models/t000102050809_v04060710_im184x608_s5x7_b8_rnn1000_optAdagrad_lr0.0005.model.valid'
-        # self.load_optimizer_path = './models/t000102050809_v04060710_ep250/models/t000102050809_v04060710_im184x608_s5x7_b8_rnn1000_optAdagrad_lr0.0005.optimizer.valid'
 
-        self.record_path = 'records/t{}_v{}_im{}x{}_s{}x{}_b{}_rnn{}_{}.txt'.format(''.join(self.train_video), ''.join(self.valid_video), self.img_h, self.img_w, self.seq_len[0], self.seq_len[1], self.batch_size, self.rnn_hidden_size, '_'.join([k+str(v) for k, v in self.optim.items()]))
-        self.save_model_path = 'models/t{}_v{}_im{}x{}_s{}x{}_b{}_rnn{}_{}.model'.format(''.join(self.train_video), ''.join(self.valid_video), self.img_h, self.img_w, self.seq_len[0], self.seq_len[1], self.batch_size, self.rnn_hidden_size, '_'.join([k+str(v) for k, v in self.optim.items()]))
-        self.save_optimzer_path = 'models/t{}_v{}_im{}x{}_s{}x{}_b{}_rnn{}_{}.optimizer'.format(''.join(self.train_video), ''.join(self.valid_video), self.img_h, self.img_w, self.seq_len[0], self.seq_len[1], self.batch_size, self.rnn_hidden_size, '_'.join([k+str(v) for k, v in self.optim.items()]))
+        experiment_name = '/sample_name/'
+        self.load_model_path = 'models{}t{}_v{}_im{}x{}_s{}x{}_b{}_rnn{}_{}.model{}'.format(experiment_name, ''.join(self.train_video), ''.join(self.valid_video), self.img_h, self.img_w, self.seq_len[0], self.seq_len[1], self.batch_size, self.rnn_hidden_size, '_'.join([k+str(v) for k, v in self.optim.items()]), self.resume_t_or_v)
+        self.load_optimizer_path = 'models{}t{}_v{}_im{}x{}_s{}x{}_b{}_rnn{}_{}.optimizer{}'.format(experiment_name, ''.join(self.train_video), ''.join(self.valid_video), self.img_h, self.img_w, self.seq_len[0], self.seq_len[1], self.batch_size, self.rnn_hidden_size, '_'.join([k+str(v) for k, v in self.optim.items()]), self.resume_t_or_v)
+
+        self.record_path = 'records{}t{}_v{}_im{}x{}_s{}x{}_b{}_rnn{}_{}.txt'.format(experiment_name, ''.join(self.train_video), ''.join(self.valid_video), self.img_h, self.img_w, self.seq_len[0], self.seq_len[1], self.batch_size, self.rnn_hidden_size, '_'.join([k+str(v) for k, v in self.optim.items()]))
+        self.save_model_path = 'models{}t{}_v{}_im{}x{}_s{}x{}_b{}_rnn{}_{}.model'.format(experiment_name, ''.join(self.train_video), ''.join(self.valid_video), self.img_h, self.img_w, self.seq_len[0], self.seq_len[1], self.batch_size, self.rnn_hidden_size, '_'.join([k+str(v) for k, v in self.optim.items()]))
+        self.save_optimzer_path = 'models{}t{}_v{}_im{}x{}_s{}x{}_b{}_rnn{}_{}.optimizer'.format(experiment_name, ''.join(self.train_video), ''.join(self.valid_video), self.img_h, self.img_w, self.seq_len[0], self.seq_len[1], self.batch_size, self.rnn_hidden_size, '_'.join([k+str(v) for k, v in self.optim.items()]))
+
+        self.results_dir = 'results{}'.format(experiment_name)
 
 
         if not os.path.isdir(os.path.dirname(self.record_path)):
@@ -98,6 +100,7 @@ class Parameters():
             self.record_path = os.path.join(home_dir, self.record_path)
             self.save_model_path = os.path.join(home_dir, self.save_model_path)
             self.save_optimzer_path = os.path.join(home_dir, self.save_optimzer_path)
+            self.results_dir = os.path.join(home_dir, self.results_dir)
 
     def set_resume(self, val):
         self.resume = val
