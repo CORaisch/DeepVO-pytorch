@@ -17,18 +17,51 @@ def plot_route(gt, out, c_gt='g', c_out='r'):
     #plt.scatter(x, y, color='b')
     plt.gca().set_aspect('equal', adjustable='datalim')
 
+def route_to_png_colorized(gt, out, step=200):
+    '''plot gradient color'''
+    plt.clf()
+    plt.scatter([gt[0][3]], [gt[0][5]], label='sequence start', marker='s', color='k')
+    for st in range(0, len(out), step):
+        end = st + step
+        g = max(0.2, st/len(out))
+        c_gt = (0, g, 0)
+        c_out = (1, g, 0)
+        plot_route(gt[st:end], out[st:end], c_gt, c_out)
+        if st == 0:
+            plt.legend()
+        plt.title('Video {}'.format(video))
+        save_name = os.path.join(os.path.join(predicted_result_dir, 'colorized'), 'route_{}.png'.format(video))
+    plt.savefig(save_name)
+
+def route_to_png_plain(gt, out, step=200):
+    '''plot one color'''
+    plt.clf()
+    plt.scatter([gt[0][3]], [gt[0][5]], label='sequence start', marker='s', color='k')
+    plot_route(gt, out, 'r', 'b')
+    plt.legend()
+    plt.title('Video {}'.format(video))
+    save_name = os.path.join(os.path.join(predicted_result_dir, 'plain'), 'route_{}.png'.format(video))
+    plt.savefig(save_name)
+
 # parse passed arguments
 argparser = argparse.ArgumentParser(description="DeepVO Visualization")
 argparser.add_argument('--results_dir', '-results', type=str, default=None, help="directory where the results are stored.")
 argparser.add_argument('--gradient_color', '-gradient', action='store_true', help="when set trajectory will be colorized depending on local error.")
+argparser.add_argument('--both', '-both', action='store_true', help="when set trajectory will be saved in colorized and plain version.")
 args = argparser.parse_args()
 
 # setup directories and config
 pose_GT_dir = par.pose_dir
 predicted_result_dir = args.results_dir
-gradient_color = args.gradient_color
+if args.both or not args.gradient_color:
+    if not os.path.isdir(os.path.join(predicted_result_dir, 'plain')):
+        os.makedirs(os.path.join(predicted_result_dir, 'plain'))
+if args.both or args.gradient_color:
+    if not os.path.isdir(os.path.join(predicted_result_dir, 'colorized')):
+        os.makedirs(os.path.join(predicted_result_dir, 'colorized'))
 
-# Load in GT and predicted pose
+
+# Load GT and predicted poses
 video_list = ['00', '01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
 
 for video in video_list:
@@ -49,28 +82,8 @@ for video in video_list:
         print('mse_translate: ', mse_translate)
 
 
-    if gradient_color:
-        # plot gradient color
-        step = 200
-        plt.clf()
-        plt.scatter([gt[0][3]], [gt[0][5]], label='sequence start', marker='s', color='k')
-        for st in range(0, len(out), step):
-            end = st + step
-            g = max(0.2, st/len(out))
-            c_gt = (0, g, 0)
-            c_out = (1, g, 0)
-            plot_route(gt[st:end], out[st:end], c_gt, c_out)
-            if st == 0:
-                plt.legend()
-            plt.title('Video {}'.format(video))
-            save_name = os.path.join(predicted_result_dir, 'route_{}_gradient.png'.format(video))
-        plt.savefig(save_name)
-    else:
-        # plot one color
-        plt.clf()
-        plt.scatter([gt[0][3]], [gt[0][5]], label='sequence start', marker='s', color='k')
-        plot_route(gt, out, 'r', 'b')
-        plt.legend()
-        plt.title('Video {}'.format(video))
-        save_name = os.path.join(predicted_result_dir, 'route_{}.png'.format(video))
-        plt.savefig(save_name)
+    # draw images
+    if args.both or not args.gradient_color:
+        route_to_png_plain(gt, out)
+    if args.both or args.gradient_color:
+        route_to_png_colorized(gt, out)
