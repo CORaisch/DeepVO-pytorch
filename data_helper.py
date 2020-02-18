@@ -238,7 +238,7 @@ class ImageSequenceDataset(Dataset):
 
         image_sequence = []
         for img_path in image_path_sequence:
-            img_as_img = Image.open(img_path)
+            img_as_img = Image.open(img_path).convert('RGB')
             img_as_tensor = self.transformer(img_as_img)
             if self.minus_point_5:
                 img_as_tensor = img_as_tensor - 0.5  # from [0, 1] -> [-0.5, 0.5]
