@@ -1,4 +1,4 @@
-import os
+import os, argparse
 import glob
 import numpy as np
 import time
@@ -9,7 +9,7 @@ from PIL import Image
 import torch
 import math
 
-def clean_unused_images():
+def clean_unused_kitti_images():
     seq_frame = {'00': ['000', '004540'],
                 '01': ['000', '001100'],
                 '02': ['000', '004660'],
@@ -45,10 +45,10 @@ def clean_unused_images():
 # transform poseGT [R|t] to [theta_x, theta_y, theta_z, x, y, z]
 # save as .npy file
 def create_pose_data():
-    info = {'00': [0, 4540], '01': [0, 1100], '02': [0, 4660], '03': [0, 800], '04': [0, 270], '05': [0, 2760], '06': [0, 1100], '07': [0, 1100], '08': [1100, 5170], '09': [0, 1590], '10': [0, 1200]}
+    videos = par.train_video + list(set(par.valid_video) - set(par.train_video)) # NOTE train_video ∪ valid_video, i.e. removing duplicates if exist
     start_t = time.time()
-    for video in info.keys():
-        fn = '{}{}.txt'.format(par.pose_dir, video)
+    for video in videos:
+        fn = '{}.txt'.format(os.path.join(par.pose_dir, video))
         if not os.path.exists(fn):
             continue
         print('Transforming {}...'.format(fn))
@@ -61,11 +61,10 @@ def create_pose_data():
             print('Video {}: shape={}'.format(video, poses.shape))
     print('elapsed time = {}'.format(time.time()-start_t))
 
-
 def calculate_rgb_mean_std(image_path_list, minus_point_5=False):
     n_images = len(image_path_list)
     cnt_pixels = 0
-    print('Numbers of frames in training dataset: {}'.format(n_images))
+    print('Numbers of frames in dataset: {}'.format(n_images))
     mean_np = [0, 0, 0]
     mean_tensor = [0, 0, 0]
     to_tensor = transforms.ToTensor()
@@ -114,14 +113,23 @@ def calculate_rgb_mean_std(image_path_list, minus_point_5=False):
 
 
 if __name__ == '__main__':
-    clean_unused_images()
+    # handle args
+    argparser = argparse.ArgumentParser(description="DeepVO Preprocessing")
+    argparser.add_argument('--carla', '-carla', action='store_true', help="set if preprocessing CARLA data")
+    args = argparser.parse_args()
+
+    # clean KITTI images as recommended by paper
+    if not args.carla:
+        clean_unused_kitti_images()
+
+    # convert pose data
     create_pose_data()
 
     # if no laplace preprocessing, then preprocess by normalizing image inputs with mean and std (as done in DeepVO paper)
     if not par.laplace_preprocessing:
         # Calculate RGB means of images in training videos
-        train_video = par.train_video
+        videos = par.train_video + list(set(par.valid_video) - set(par.train_video)) # NOTE train_video ∪ valid_video, i.e. removing duplicates if exist
         image_path_list = []
-        for folder in train_video:
+        for folder in videos:
             image_path_list += glob.glob('{}/*.png'.format(os.path.join(par.image_dir, folder)))
         calculate_rgb_mean_std(image_path_list, minus_point_5=par.minus_point_5)
