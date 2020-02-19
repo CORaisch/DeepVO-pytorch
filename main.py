@@ -94,7 +94,10 @@ if par.resume:
 
 
 # setup logging
-tb_dir = os.path.join('records/tensorboard', par.experiment_name.split('/')[1])
+if args.home_dir:
+    tb_dir = os.path.join(args.home_dir, os.path.join('records/tensorboard', par.experiment_name.split('/')[1]))
+else:
+    tb_dir = os.path.join('records/tensorboard', par.experiment_name.split('/')[1])
 tb = SummaryWriter(log_dir=tb_dir)
 tb.add_graph(M_deepvo, torch.zeros(par.batch_size, int(sum(par.seq_len)/2), 3, par.img_w, par.img_h, dtype=torch.float32))
 print('tensorboard log dir:', tb_dir)

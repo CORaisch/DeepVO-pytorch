@@ -8,6 +8,10 @@ class Parameters():
         self.image_dir = os.path.join(self.data_dir, 'images/')
         self.pose_dir = os.path.join(self.data_dir, 'poses_gt/')
 
+        # KITTI
+        # self.train_video = ['00', '01', '02', '05', '08', '09']
+        # self.valid_video = ['04', '06', '07', '10']
+        # CARLA
         self.train_video = ['00', '01', '03', '05', '06', '07', '09']
         self.valid_video = ['02', '04', '08']
         self.partition = None  # partition videos in 'train_video' to train / valid dataset  #0.8
