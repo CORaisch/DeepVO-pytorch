@@ -1,5 +1,6 @@
 import torch
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 import os, argparse
 import time
@@ -92,8 +93,14 @@ if par.resume:
     print('Load optimizer from: ', par.load_optimizer_path)
 
 
-# Train
+# setup logging
+tb_dir = os.path.join('records/tensorboard', par.experiment_name.split('/')[1])
+tb = SummaryWriter(log_dir=tb_dir)
+tb.add_graph(M_deepvo, torch.zeros(par.batch_size, int(sum(par.seq_len)/2), 3, par.img_w, par.img_h, dtype=torch.float32))
+print('tensorboard log dir:', tb_dir)
 print('Record loss in: ', par.record_path)
+
+# Train
 min_loss_t = 1e10
 min_loss_v = 1e10
 M_deepvo.train()
@@ -117,6 +124,7 @@ for ep in range(par.epochs):
         if par.optim == 'Cosine':
             lr_scheduler.step()
     loss_mean /= len(train_dl)
+    tb.add_scalar('Loss/train', loss_mean, ep) # log ep train loss with tensorboard
     print('training took {:.1f} sec, mean loss: {}'.format(time.time()-st_t, loss_mean))
 
     # Validation
@@ -134,6 +142,7 @@ for ep in range(par.epochs):
         v_loss_list.append(float(v_ls))
         loss_mean_valid += float(v_ls)
     loss_mean_valid /= len(valid_dl)
+    tb.add_scalar('Loss/valid', loss_mean_valid, ep) # log ep valid loss with tensorboard
     print('validation took {:.1f} sec, mean loss: {}'.format(time.time()-st_t, loss_mean_valid))
 
 
@@ -142,6 +151,7 @@ for ep in range(par.epochs):
     print('Epoch {}\ntrain loss mean: {}, std: {:.2f}\nvalid loss mean: {}, std: {:.2f}\n'.format(ep+1, loss_mean, np.std(t_loss_list), loss_mean_valid, np.std(v_loss_list)))
 
     # Save model
+
     # save if the valid loss decrease
     check_interval = 1
     if loss_mean_valid < min_loss_v and ep % check_interval == 0:
@@ -149,6 +159,10 @@ for ep in range(par.epochs):
         print('Save model at ep {}, mean of valid loss: {}'.format(ep+1, loss_mean_valid))  # use 4.6 sec
         torch.save(M_deepvo.state_dict(), par.save_model_path+'.valid')
         torch.save(optimizer.state_dict(), par.save_optimzer_path+'.valid')
+        tb.add_scalar('Checkpoints/valid', loss_mean_valid, ep)
+    else:
+        tb.add_scalar('Checkpoints/valid', 0.0, ep)
+
     # save if the training loss decrease
     check_interval = 1
     if loss_mean < min_loss_t and ep % check_interval == 0:
@@ -156,4 +170,7 @@ for ep in range(par.epochs):
         print('Save model at ep {}, mean of train loss: {}'.format(ep+1, loss_mean))
         torch.save(M_deepvo.state_dict(), par.save_model_path+'.train')
         torch.save(optimizer.state_dict(), par.save_optimzer_path+'.train')
+        tb.add_scalar('Checkpoints/train', loss_mean, ep)
+    else:
+        tb.add_scalar('Checkpoints/train', 0.0, ep)
 
