@@ -4,12 +4,12 @@ class Parameters():
     def __init__(self, unpack_to = None):
         self.n_processors = 4
         # Path
-        self.data_dir =  '/media/claudio/Cluster/Datasets/KITTI/'
+        self.data_dir =  '/home/claudio/Datasets/CARLA/DeepVO/'
         self.image_dir = os.path.join(self.data_dir, 'images/')
         self.pose_dir = os.path.join(self.data_dir, 'poses_gt/')
 
-        self.train_video = ['00', '01', '02', '05', '08', '09']
-        self.valid_video = ['04', '06', '07', '10']
+        self.train_video = ['00', '01', '03', '05', '06', '07', '09']
+        self.valid_video = ['02', '04', '08']
         self.partition = None  # partition videos in 'train_video' to train / valid dataset  #0.8
 
 
@@ -17,14 +17,21 @@ class Parameters():
         self.grayscale = False # specifiy if grayscale images should be used for training/testing
         self.laplace_preprocessing = False # enable laplace preprocessing NOTE instead of normalizing the inputs with mean and std images will be laplace filtered
         self.resize_mode = 'rescale'  # choice: 'crop' 'rescale' None
-        self.img_w = 608   # original size is about 1226
-        self.img_h = 184   # original size is about 370
-        # means and std for kitti rgb image sequence [00, 01, 02, 03, 04, 05, 06, 07, 08, 09, 10]
-        self.img_means = (-0.15116102640573548, -0.1322411015338543, -0.13887598313286317)
-        self.img_stds = (0.31308950448998596, 0.3176070324487968, 0.3232656266278995)
-        # means and std for kitti grayscale image sequence [00, 01, 02, 03, 04, 05, 06, 07, 08, 09, 10]
-        # self.img_means = (-0.14046805191159092, -0.14046805191159092, -0.14046805191159092)
-        # self.img_stds = (0.3128824310845576, 0.3128824310845576, 0.3128824310845576)
+        # KITTI
+        # self.img_w = 608 # original size is about 1226
+        # self.img_h = 184 # original size is about 370
+        # CARLA
+        self.img_w = 400 # original size is about 800
+        self.img_h = 300 # original size is about 600
+        # means and std for KITTI RGB
+        # self.img_means = (-0.15188777921929586, -0.13248322798940773, -0.13754771375070027)
+        # self.img_stds = (0.31139055400107185, 0.31645172811357664, 0.3233846633856191)
+        # means and std for KITTI GRAY
+        # self.img_means = () # FIXME add values
+        # self.img_stds = () # FIXME add values
+        # means and std for CARLA RGB
+        self.img_means = (0.028457542237100963, -0.006877451946295531, -0.002785168301653312)
+        self.img_stds = (0.2152724173699555, 0.229336494250576, 0.2559454319056272)
         self.minus_point_5 = True
 
         self.seq_len = (5, 7)
