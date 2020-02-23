@@ -43,6 +43,7 @@
 
 DS=KITTI # NOTE fill in DS to copy, options: KITTI, CARLA
 EXPERIMENT=sample_name # NOTE fill in experiment name
+START_EP=250 # NOTE fill in start epoch
 ids=( "00" "01" "02" "03" "04" "05" "06" "07" "08" "09" "10" ) # NOTE fill in ids to copy
 
 HOME=/home/raisch
@@ -84,6 +85,6 @@ du -sh /scratch/${SLURM_JOB_ID}/images
 IMG_FILE=/common/singularityImages/TCML-Cuda10_0Tensorflow2_0_0.simg
 
 echo "executing training..."
-singularity exec --nv ${IMG_FILE} python3 /scratch/${SLURM_JOB_ID}/main.py ${EXPERIMENT_DIR} -log ${PROJECT_DIR}/logs -run ${EXPERIMENT} --resume -load_model ${EXPERIMENT_DIR}/${EXPERIMENT}_valid.model -load_optim ${EXPERIMENT_DIR}/${EXPERIMENT}_valid.optimizer
+singularity exec --nv ${IMG_FILE} python3 /scratch/${SLURM_JOB_ID}/main.py ${EXPERIMENT_DIR} -log ${PROJECT_DIR}/logs -run ${EXPERIMENT} --resume -ep ${START_EP} -load_model ${EXPERIMENT_DIR}/${EXPERIMENT}_valid.model -load_optim ${EXPERIMENT_DIR}/${EXPERIMENT}_valid.optimizer
 echo " done!"
 
