@@ -20,6 +20,7 @@ argparser.add_argument('--model_load_path', '-load_model', type=str, default=Non
 argparser.add_argument('--optimizer_load_path', '-load_optim', type=str, default=None, help="path from where optimizer will be loaded if training is resumed")
 argparser.add_argument('--optimizer_save_path', '-save_optim', type=str, default=None, help="path where optimizer will be saved")
 argparser.add_argument('--resume', '-resume', action='store_true', help="If set training will resume from model given by \'--model_load_path\' and \'--optimizer_load_path\'.")
+argparser.add_argument('--start_epoch', '-ep', type=int, default=0, help="specify where to start counting the epochs, only used when \'--resume\' is set")
 argparser.add_argument('--log_dir', '-log', type=str, default='logs', help="directory where log data should be saved")
 args = argparser.parse_args()
 
@@ -116,7 +117,8 @@ print('TensorBoard will log to: {}'.format(tb_dir))
 min_loss_t = 1e10
 min_loss_v = 1e10
 M_deepvo.train()
-for ep in range(par.epochs):
+epochs = range(par.epochs) if not args.resume else range(args.start_epoch, args.start_epoch + par.epochs)
+for ep in epochs:
     st_t = time.time()
     print('='*50)
     print('epoch {}/{}'.format(ep+1, par.epochs))
