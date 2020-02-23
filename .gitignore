@@ -4,6 +4,7 @@ KITTI/devkit/
 KITTI/pose_GT/
 datainfo/*
 *.png
+logs/
 records/
 results/*
 models/
