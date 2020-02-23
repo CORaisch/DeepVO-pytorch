@@ -84,5 +84,5 @@ du -sh /scratch/${SLURM_JOB_ID}/images
 IMG_FILE=/common/singularityImages/TCML-Cuda10_0Tensorflow2_0_0.simg
 
 echo "execute testing..."
-singularity exec --nv ${IMG_FILE} python3 /scratch/${SLURM_JOB_ID}/test.py ${EXPERIMENT_DIR}/${EXPERIMENT}_valid.model ${EXPERIMENT_DIR}/eval_on_${DS} -ds ${DATASET_DIR} -seq ${ids}
+singularity exec --nv ${IMG_FILE} python3 /scratch/${SLURM_JOB_ID}/test.py ${EXPERIMENT_DIR}/${EXPERIMENT}_valid.model ${EXPERIMENT_DIR}/test_on_${DS} -ds ${DATASET_DIR} -seq ${ids}
 echo " done!"
