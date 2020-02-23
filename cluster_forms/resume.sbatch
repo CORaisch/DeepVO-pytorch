@@ -4,7 +4,7 @@
 #a) Define slurm job parameters
 ####
 
-#SBATCH --job-name=DeepVO_test
+#SBATCH --job-name=DVO-train-resume
 #resources:
 
 #SBATCH --cpus-per-task=4
@@ -23,10 +23,12 @@
 # the maximum time the scripts needs to run
 # "minutes:seconds", "hours:minutes:seconds", "days-hours", "days-hours:minutes" and "days-hours:minutes:seconds"
 
-#SBATCH --error=/home/raisch/DeepVO-pytorch/experiments/sample_name/job.%J.test.err
+# NOTE fill in correct path
+#SBATCH --error=/home/raisch/DeepVO-pytorch/experiments/sample_name/job.%J.resume.err
 # write the error output to job.*jobID*.err
 
-#SBATCH --output=/home/raisch/DeepVO-pytorch/experiments/sample_name/job.%J.test.out
+# NOTE fill in correct path
+#SBATCH --output=/home/raisch/DeepVO-pytorch/experiments/sample_name/job.%J.resume.out
 # write the standard output to job.*jobID*.out
 
 #SBATCH --mail-type=ALL
@@ -39,17 +41,22 @@
 #b) copy all needed data to the jobs scratch folder
 ####
 
+DS=KITTI # NOTE fill in DS to copy, options: KITTI, CARLA
+EXPERIMENT=sample_name # NOTE fill in experiment name
+ids=( "00" "01" "02" "03" "04" "05" "06" "07" "08" "09" "10" ) # NOTE fill in ids to copy
+
 HOME=/home/raisch
 PROJECT_DIR=${HOME}/DeepVO-pytorch
+EXPERIMENT_DIR=${PROJECT_DIR}/experiments/${EXPERIMENT}
+DATASET_DIR=${HOME}/Datasets/${DS}
 
 echo "copy dataset to /scratch/${SLURM_JOB_ID}/:"
 mkdir /scratch/${SLURM_JOB_ID}/images /scratch/${SLURM_JOB_ID}/poses_gt
-ids=( "00" "01" "02" "03" "04" "05" "06" "07" "08" "09" "10" )
 for id in "${ids[@]}"
 do
      echo "copy sequence ${id}..."
-     rsync --info=progress2 -r ${HOME}/Datasets/KITTI/images/${id} /scratch/${SLURM_JOB_ID}/images
-     rsync --info=progress2 ${HOME}/Datasets/KITTI/poses_gt/${id}.npy /scratch/${SLURM_JOB_ID}/poses_gt
+     rsync --info=progress2 -r ${DATASET_DIR}/images/${id} /scratch/${SLURM_JOB_ID}/images
+     rsync --info=progress2 ${DATASET_DIR}/poses_gt/${id}.npy /scratch/${SLURM_JOB_ID}/poses_gt
 done
 
 echo "copy sourcecode to /scratch/${SLURM_JOB_ID}/:"
@@ -60,7 +67,7 @@ do
 done
 
 echo "copy configuration to /scratch/${SLURM_JOB_ID}/:"
-rsync --info=progress2 ${PROJECT_DIR}/experiments/experiment_name/params.py /scratch/${SLURM_JOB_ID}
+rsync --info=progress2 ${EXPERIMENT_DIR}/params.py /scratch/${SLURM_JOB_ID}/params.py
 
 echo "list /scratch/${SLURM_JOB_ID}/:"
 ls -l /scratch/${SLURM_JOB_ID}
@@ -77,6 +84,6 @@ du -sh /scratch/${SLURM_JOB_ID}/images
 IMG_FILE=/common/singularityImages/TCML-Cuda10_0Tensorflow2_0_0.simg
 
 echo "executing training..."
-singularity exec --nv ${IMG_FILE} python3 /scratch/${SLURM_JOB_ID}/test.py --remote_dir=/scratch/${SLURM_JOB_ID} --home_dir=${PROJECT_DIR}
+singularity exec --nv ${IMG_FILE} python3 /scratch/${SLURM_JOB_ID}/main.py ${EXPERIMENT_DIR} -log ${PROJECT_DIR}/logs -run ${EXPERIMENT} --resume -load_model ${EXPERIMENT_DIR}/${EXPERIMENT}_valid.model -load_optim ${EXPERIMENT_DIR}/${EXPERIMENT}_valid.optimizer
 echo " done!"
 
