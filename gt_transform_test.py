@@ -1,4 +1,6 @@
+# builtins
 import sys, math, argparse
+# external dependencies
 import numpy as np
 
 def mat_to_euler_chiwei(poses):

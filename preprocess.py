@@ -1,13 +1,13 @@
-import os, argparse
-import glob
-import numpy as np
-import time
-from helper import R_to_angle
-from params import par
-from torchvision import transforms
+# builtins
+import os, argparse, glob, time, math
 from PIL import Image
+# project dependencies
+from params import par
+from helper import R_to_angle
+# external dependencies
+import numpy as np
 import torch
-import math
+from torchvision import transforms
 
 def clean_unused_kitti_images():
     seq_frame = {'00': ['000', '004540'],
@@ -44,11 +44,10 @@ def clean_unused_kitti_images():
 
 # transform poseGT [R|t] to [theta_x, theta_y, theta_z, x, y, z]
 # save as .npy file
-def create_pose_data():
-    videos = par.train_video + list(set(par.valid_video) - set(par.train_video)) # NOTE train_video ∪ valid_video, i.e. removing duplicates if exist
+def create_pose_data(sequences):
     start_t = time.time()
-    for video in videos:
-        fn = '{}.txt'.format(os.path.join(par.pose_dir, video))
+    for seq in sequences:
+        fn = '{}.txt'.format(os.path.join(par.pose_dir, seq))
         if not os.path.exists(fn):
             continue
         print('Transforming {}...'.format(fn))
@@ -58,7 +57,7 @@ def create_pose_data():
             poses = np.array(poses)
             base_fn = os.path.splitext(fn)[0]
             np.save(base_fn+'.npy', poses)
-            print('Video {}: shape={}'.format(video, poses.shape))
+            print('Sequence {}: shape={}'.format(seq, poses.shape))
     print('elapsed time = {}'.format(time.time()-start_t))
 
 def calculate_rgb_mean_std(image_path_list, minus_point_5=False):
@@ -115,21 +114,34 @@ def calculate_rgb_mean_std(image_path_list, minus_point_5=False):
 if __name__ == '__main__':
     # handle args
     argparser = argparse.ArgumentParser(description="DeepVO Preprocessing")
-    argparser.add_argument('--carla', '-carla', action='store_true', help="set if preprocessing CARLA data")
+    argparser.add_argument('--kitti', '-kitti', action='store_true', help="set if preprocessing KITTI data, additional images will be removed for KITTI")
+    argparser.add_argument('--dataset_dir', '-ds', type=str, default=None, help="directory of dataset, if not set it will be taken from params")
+    argparser.add_argument('--sequences', '-seq', type=str, default=None, nargs='+', help="list of video sequences (indices) used for preprocessing, if not set it will be taken from params")
     args = argparser.parse_args()
 
+    # set new dataset dir if requested
+    if args.dataset_dir:
+        par.data_dir = args.dataset_dir
+        par.image_dir = os.path.join(par.data_dir, 'images/')
+        par.pose_dir = os.path.join(par.data_dir, 'poses_gt/')
+
     # clean KITTI images as recommended by paper
-    if not args.carla:
+    if args.kitti:
         clean_unused_kitti_images()
 
+    # get sequences for preprocessing from params if not given as argument
+    if args.sequences:
+        sequences = args.sequences
+    else:
+        sequences = par.train_seq + list(set(par.valid_seq) - set(par.train_seq)) # NOTE train_video ∪ valid_video, i.e. removing duplicates if exist
+
     # convert pose data
-    create_pose_data()
+    create_pose_data(sequences)
 
     # if no laplace preprocessing, then preprocess by normalizing image inputs with mean and std (as done in DeepVO paper)
     if not par.laplace_preprocessing:
-        # Calculate RGB means of images in training videos
-        videos = par.train_video + list(set(par.valid_video) - set(par.train_video)) # NOTE train_video ∪ valid_video, i.e. removing duplicates if exist
+        # Calculate RGB means of images in training sequences
         image_path_list = []
-        for folder in videos:
+        for folder in sequences:
             image_path_list += glob.glob('{}/*.png'.format(os.path.join(par.image_dir, folder)))
         calculate_rgb_mean_std(image_path_list, minus_point_5=par.minus_point_5)

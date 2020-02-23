@@ -1,16 +1,17 @@
-import os
-import glob
-import pandas as pd
-import numpy as np
+# builtins
+import os, glob, time
 from PIL import Image
 from random import shuffle
+# project dependencies
+from params import par
+from helper import normalize_angle_delta
+# external dependencies
+import numpy as np
+import pandas as pd
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.sampler import Sampler
 from torchvision import transforms
-import time
-from params import par
-from helper import normalize_angle_delta
 
 
 def get_data_info(folder_list, seq_len_range, overlap, sample_times=1, pad_y=False, shuffle=False, sort=True):
@@ -18,8 +19,8 @@ def get_data_info(folder_list, seq_len_range, overlap, sample_times=1, pad_y=Fal
     X_len = []
     for folder in folder_list:
         start_t = time.time()
-        poses = np.load('{}{}.npy'.format(par.pose_dir, folder))  # (n_images, 6)
-        fpaths = glob.glob('{}{}/*.png'.format(par.image_dir, folder))
+        poses = np.load(os.path.join(par.pose_dir, '{}.npy'.format(folder)))  # (n_images, 6)
+        fpaths = glob.glob(os.path.join(par.image_dir, folder, '*.png'))
         fpaths.sort()
         # Fixed seq_len
         if seq_len_range[0] == seq_len_range[1]:
@@ -88,10 +89,9 @@ def get_partition_data_info(partition, folder_list, seq_len_range, overlap, samp
     for part in range(2):
         for folder in folder_list:
             start_t = time.time()
-            poses = np.load('{}{}.npy'.format(par.pose_dir, folder))  # (n_images, 6)
-            fpaths = glob.glob('{}{}/*.png'.format(par.image_dir, folder))
+            poses = np.load(os.path.join(par.pose_dir, '{}.npy'.format(folder)))  # (n_images, 6)
+            fpaths = glob.glob(os.path.join(par.image_dir, folder, '*.png'))
             fpaths.sort()
-
 
             # Get the middle section as validation set
             n_val = int((1-partition)*len(fpaths))

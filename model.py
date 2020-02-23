@@ -1,9 +1,11 @@
+# project dependencies
+from params import par
+# external dependencies
+import numpy as np
 import torch
 import torch.nn as nn
-from params import par
 from torch.autograd import Variable
 from torch.nn.init import kaiming_normal_, orthogonal_
-import numpy as np
 
 def conv(batchNorm, in_planes, out_planes, kernel_size=3, stride=1, dropout=0):
     if batchNorm:
