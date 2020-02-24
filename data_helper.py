@@ -19,7 +19,7 @@ def get_data_info(folder_list, seq_len_range, overlap, sample_times=1, pad_y=Fal
     X_len = []
     for folder in folder_list:
         start_t = time.time()
-        poses = np.load(os.path.join(par.pose_dir, '{}.npy'.format(folder)))  # (n_images, 6)
+        poses = np.load(os.path.join(par.pose_dir, '{}.npy'.format(folder))) # (n_images, 6)
         fpaths = glob.glob(os.path.join(par.image_dir, folder, '*.png'))
         fpaths.sort()
         # Fixed seq_len
