@@ -27,7 +27,7 @@ argparser.add_argument('--valid_sequences', '-vseq', type=str, default=None, nar
 argparser.add_argument('--log_dir', '-log', type=str, default='logs', help="directory where log data should be saved")
 argparser.add_argument('--resume', '-resume', action='store_true', help="If set training will resume from model given by \'--model_load_path\' and \'--optimizer_load_path\'.")
 argparser.add_argument('--start_epoch', '-ep', type=int, default=0, help="specify where to start counting the epochs, only used when \'--resume\' is set")
-argparser.add_argument('--partition', '-p', type=float, default=None, help="set to number in [0,1] to split train sequences into \'-p\'% sequences for training and (1-\'-p\')% for validation")
+argparser.add_argument('--partition', '-p', type=float, default=None, help="set to number in [0,1] to split train sequences into [-p]%% sequences for training and (1-[-p])%% for validation")
 args = argparser.parse_args()
 
 ## Handle Arguments
