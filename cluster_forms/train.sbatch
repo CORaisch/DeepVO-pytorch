@@ -83,7 +83,8 @@ du -sh /scratch/${SLURM_JOB_ID}/images
 
 IMG_FILE=/common/singularityImages/TCML-Cuda10_0Tensorflow2_0_0.simg
 
-echo "executing training..."
-singularity exec --nv ${IMG_FILE} python3 /scratch/${SLURM_JOB_ID}/train.py ${EXPERIMENT_DIR} -log ${PROJECT_DIR}/logs -run ${EXPERIMENT}
+# NOTE check if call is as desired
+echo "execute training..."
+singularity exec --nv ${IMG_FILE} python3 /scratch/${SLURM_JOB_ID}/train.py ${EXPERIMENT_DIR} -log ${PROJECT_DIR}/logs -run ${EXPERIMENT} -ds /scratch/${SLURMM_JOB_ID}
 echo " done!"
 

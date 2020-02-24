@@ -83,6 +83,7 @@ du -sh /scratch/${SLURM_JOB_ID}/images
 
 IMG_FILE=/common/singularityImages/TCML-Cuda10_0Tensorflow2_0_0.simg
 
+# NOTE check if call is as desired
 echo "execute testing..."
-singularity exec --nv ${IMG_FILE} python3 /scratch/${SLURM_JOB_ID}/test.py ${EXPERIMENT_DIR}/${EXPERIMENT}_valid.model ${EXPERIMENT_DIR}/test_on_${DS} -ds ${DATASET_DIR} -seq $(printf "%s " "${ids[@]}")
+singularity exec --nv ${IMG_FILE} python3 /scratch/${SLURM_JOB_ID}/test.py ${EXPERIMENT_DIR}/${EXPERIMENT}_valid.model ${EXPERIMENT_DIR}/test_on_${DS} -ds /scratch/${SLURM_JOB_ID} -seq $(printf "%s " "${ids[@]}")
 echo " done!"
