@@ -1,3 +1,5 @@
+#!/home/claudio/Apps/anaconda3/envs/PyTorch/bin/python
+
 # builtins
 import os, argparse, time
 from pathlib import Path
@@ -19,12 +21,16 @@ argparser.add_argument('--run_name', '-run', type=str, default='test_run', help=
 argparser.add_argument('--model_load_path', '-load_model', type=str, default=None, help="path from where model will be loaded if training is resumed")
 argparser.add_argument('--optimizer_load_path', '-load_optim', type=str, default=None, help="path from where optimizer will be loaded if training is resumed")
 argparser.add_argument('--optimizer_save_path', '-save_optim', type=str, default=None, help="path where optimizer will be saved")
+argparser.add_argument('--dataset_dir', '-ds', type=str, default=None, help="directory of dataset, if not set it will be read from params")
+argparser.add_argument('--train_sequences', '-tseq', type=str, default=None, nargs='+', help="list of video sequences (indices) used for training, if not set it will be read from params")
+argparser.add_argument('--valid_sequences', '-vseq', type=str, default=None, nargs='+', help="list of video sequences (indices) used for validation, if not set it will be read from params")
+argparser.add_argument('--log_dir', '-log', type=str, default='logs', help="directory where log data should be saved")
 argparser.add_argument('--resume', '-resume', action='store_true', help="If set training will resume from model given by \'--model_load_path\' and \'--optimizer_load_path\'.")
 argparser.add_argument('--start_epoch', '-ep', type=int, default=0, help="specify where to start counting the epochs, only used when \'--resume\' is set")
-argparser.add_argument('--log_dir', '-log', type=str, default='logs', help="directory where log data should be saved")
+argparser.add_argument('--partition', '-p', type=float, default=None, help="set to number in [0,1] to split train sequences into \'-p\'% sequences for training and (1-\'-p\')% for validation")
 args = argparser.parse_args()
 
-## Check Arguments
+## Handle Arguments
 # check if resume flag is set consistently
 if args.resume and not (args.model_load_path and args.optimizer_load_path):
     print('[ERROR] if \'--resume\' flag is set both \'--model_load_path\' and \'--optimizer_load_path\' must be set')
@@ -42,6 +48,15 @@ else: # case: create optimizer_save_path from model_save_path: Path/To/model.fil
     optimizer_base = model_base
 # create required directory structure for logging
 Path(args.log_dir).mkdir(parents=True, exist_ok=True)
+# update dataset related things in params
+if args.dataset_dir:
+    par.data_dir = args.dataset_dir
+    par.image_dir = os.path.join(par.data_dir, 'images')
+    par.pose_dir = os.path.join(par.data_dir, 'poses_gt')
+par.train_seq = args.train_sequences if args.train_sequences else par.train_seq
+par.valid_seq = args.valid_sequences if args.valid_sequences else par.valid_seq
+par.partition = args.partition if args.partition else par.partition
+
 
 ## Prepare Data
 print('Subdivide Trajectories into Subsequences of Lengths between {} and {}'.format(par.seq_len[0], par.seq_len[1]))
