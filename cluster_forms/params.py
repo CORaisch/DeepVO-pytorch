@@ -1,5 +1,7 @@
 import os
+from helper import Singleton
 
+@Singleton
 class Parameters():
     def __init__(self):
         ## Datasets
@@ -68,5 +70,4 @@ class Parameters():
                                 # './pretrained/flownets_bn_EPE2.459.pth.tar'
                                 # './pretrained/flownets_EPE1.951.pth.tar'
 
-par = Parameters()
-
+par = Parameters.instance()
