@@ -61,7 +61,7 @@ do
 done
 
 echo "copy sourcecode to /scratch/${SLURM_JOB_ID}/:"
-files=( "data_helper.py" "helper.py" "test.py" "model.py" )
+files=( "data_helper.py" "helper.py" "train.py" "model.py" )
 for file in "${files[@]}"
 do
     rsync --info=progress2 ${PROJECT_DIR}/${file} /scratch/${SLURM_JOB_ID}
@@ -85,6 +85,6 @@ du -sh /scratch/${SLURM_JOB_ID}/images
 IMG_FILE=/common/singularityImages/TCML-Cuda10_0Tensorflow2_0_0.simg
 
 echo "executing training..."
-singularity exec --nv ${IMG_FILE} python3 /scratch/${SLURM_JOB_ID}/main.py ${EXPERIMENT_DIR} -log ${PROJECT_DIR}/logs -run ${EXPERIMENT} --resume -ep ${START_EP} -load_model ${EXPERIMENT_DIR}/${EXPERIMENT}_valid.model -load_optim ${EXPERIMENT_DIR}/${EXPERIMENT}_valid.optimizer
+singularity exec --nv ${IMG_FILE} python3 /scratch/${SLURM_JOB_ID}/train.py ${EXPERIMENT_DIR} -log ${PROJECT_DIR}/logs -run ${EXPERIMENT} --resume -ep ${START_EP} -load_model ${EXPERIMENT_DIR}/${EXPERIMENT}_valid.model -load_optim ${EXPERIMENT_DIR}/${EXPERIMENT}_valid.optimizer
 echo " done!"
 
