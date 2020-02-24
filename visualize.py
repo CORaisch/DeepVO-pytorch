@@ -1,3 +1,5 @@
+#!/home/claudio/Apps/anaconda3/envs/PyTorch/bin/python
+
 # builtins
 import os, time, argparse
 from pathlib import Path
