@@ -16,24 +16,28 @@ import pandas as pd
 
 ## Parse passed Arguments
 argparser = argparse.ArgumentParser(description="DeepVO Training")
-argparser.add_argument('model_out', type=str, help="path where trained model will be saved")
-argparser.add_argument('--run_name', '-run', type=str, default='test_run', help="name of experiment used for logging and naming saved data")
-argparser.add_argument('--model_load_path', '-load_model', type=str, default=None, help="path from where model will be loaded if training is resumed")
-argparser.add_argument('--optimizer_load_path', '-load_optim', type=str, default=None, help="path from where optimizer will be loaded if training is resumed")
-argparser.add_argument('--optimizer_save_path', '-save_optim', type=str, default=None, help="path where optimizer will be saved")
-argparser.add_argument('--dataset_dir', '-ds', type=str, default=None, help="directory of dataset, if not set it will be read from params")
-argparser.add_argument('--train_sequences', '-tseq', type=str, default=None, nargs='+', help="list of video sequences (indices) used for training, if not set it will be read from params")
-argparser.add_argument('--valid_sequences', '-vseq', type=str, default=None, nargs='+', help="list of video sequences (indices) used for validation, if not set it will be read from params")
-argparser.add_argument('--log_dir', '-log', type=str, default='logs', help="directory where log data should be saved")
+argparser.add_argument('model_out', type=str, help="path where trained model will be saved (it will be named \'[--run_name]{_train,_valid}.model\')")
+argparser.add_argument('dataset', type=str, help="dataset base directory")
+argparser.add_argument('epochs', type=int, help="number epochs to train")
+argparser.add_argument('batch_size', type=int, help="batch size for training (good results for 8 so far)")
+argparser.add_argument('train_sequences', type=str, nargs='+', help="video indices used for training")
+argparser.add_argument('--valid_sequences', '-vseq', type=str, default=None, nargs='+', help="video indices used for validation, if not set validation data will be created from [train_sequences] by partitioning using value of [--partition]")
+argparser.add_argument('--run_name', '-run', type=str, default='test_run', help="will be used for logging and naming of saved data (default: test_run)")
+argparser.add_argument('--pretrained_flownet', '-flownet', type=str, default=None, help="pretrained flownet weights, if not set weights will be initialized randomly, will be ignored if [--resume] is set")
+argparser.add_argument('--log_dir', '-log', type=str, default='logs', help="directory where log data will be saved")
+argparser.add_argument('--model_load_path', '-load_model', type=str, default=None, help="model to be loaded if training is resumed")
+argparser.add_argument('--optimizer_load_path', '-load_optim', type=str, default=None, help="optimizer to be loaded if training is resumed")
+argparser.add_argument('--optimizer_save_path', '-save_optim', type=str, default=None, help="path where optimizer will be saved (it will be named \'[--run_name]{_train,_valid}.optimizer\')")
 argparser.add_argument('--resume', '-resume', action='store_true', help="If set training will resume from model given by \'--model_load_path\' and \'--optimizer_load_path\'.")
-argparser.add_argument('--start_epoch', '-ep', type=int, default=0, help="specify where to start counting the epochs, only used when \'--resume\' is set")
-argparser.add_argument('--partition', '-p', type=float, default=None, help="set to number in [0,1] to split train sequences into [-p]%% sequences for training and (1-[-p])%% for validation")
+argparser.add_argument('--start_epoch', '-ep', type=int, default=0, help="specify where to start counting the epochs, only used when \'--resume\' is set (default: 0)")
+argparser.add_argument('--partition', '-p', type=float, default=0.8, help="set to number in range [0,1] to split train sequences into [-p]%% sequences for training and (1-[-p])%% for validation, will be ignored if [--valid_sequences] is set (default: 0.8)")
+argparser.add_argument('--n_processors', '-np', type=int, default=4, help="number of processes to be invoked for dataset loading during training (default: 4)")
 args = argparser.parse_args()
 
 ## Handle Arguments
-# check if resume flag is set consistently
+# if training is resumed model_load_path and optimizer_load_path must be set too
 if args.resume and not (args.model_load_path and args.optimizer_load_path):
-    print('[ERROR] if \'--resume\' flag is set both \'--model_load_path\' and \'--optimizer_load_path\' must be set')
+    print('[ERROR] if \'--resume\' flag is set both \'--model_load_path\' and \'--optimizer_load_path\' must be specified')
     exit()
 # create required directory structure for model_save_path
 model_file = args.run_name + '.model'
@@ -41,39 +45,41 @@ model_base = args.model_out
 Path(model_base).mkdir(parents=True, exist_ok=True)
 # create required directory structure for optimizer_save_path
 optimizer_file = args.run_name + '.optimizer'
-if args.optimizer_save_path: # case: optimizer_save_path is set
+if args.optimizer_save_path: # case: optimizer_save_path is set -> use it
     optimizer_base = args.optimizer_save_path
     Path(optimizer_base).mkdir(parents=True, exist_ok=True)
-else: # case: create optimizer_save_path from model_save_path: Path/To/model.file -> Path/To/model_optimizer.file
+else: # case: create optimizer_save_path not set -> use same dir same dir same dir as for model
     optimizer_base = model_base
-# create required directory structure for logging
+# make log dir if not exist
 Path(args.log_dir).mkdir(parents=True, exist_ok=True)
-# update dataset related things in params
-if args.dataset_dir:
-    par.data_dir = args.dataset_dir
-    par.image_dir = os.path.join(par.data_dir, 'images')
-    par.pose_dir = os.path.join(par.data_dir, 'poses_gt')
-par.train_seq = args.train_sequences if args.train_sequences else par.train_seq
-par.valid_seq = args.valid_sequences if args.valid_sequences else par.valid_seq
-par.partition = args.partition if args.partition else par.partition
+# set dataset dirs
+image_dir = os.path.join(args.dataset, 'images')
+pose_dir = os.path.join(args.dataset, 'poses_gt')
+# if valid_sequences are passed set partition to None so that datasets will be created from train and valid sequences
+args.partition = 0 if args.valid_sequences else args.partition
 
+# import pdb; pdb.set_trace()
 
 ## Prepare Data
-print('Subdivide Trajectories into Subsequences of Lengths between {} and {}'.format(par.seq_len[0], par.seq_len[1]))
-if par.partition != None:
-    train_df, valid_df = get_partition_data_info(par.partition, par.train_seq, par.seq_len, overlap=1, sample_times=par.sample_times, shuffle=True, sort=True)
-else:
-    train_df = get_data_info(folder_list=par.train_seq, seq_len_range=par.seq_len, overlap=1, sample_times=par.sample_times)
-    valid_df = get_data_info(folder_list=par.valid_seq, seq_len_range=par.seq_len, overlap=1, sample_times=par.sample_times)
+print('subdivide trajectories into subsequences of random lengths between {} and {}'.format(par.seq_len[0], par.seq_len[1]))
+if args.partition > 0: # case: create validation dataset by partitioning the train dataset
+    print('make train data from sequences: {} (dataset: {})'.format(args.train_sequences, args.dataset))
+    print('make validation data from training sequences by partitioning (p={})'.format(args.partition))
+    train_df, valid_df = get_partition_data_info(image_dir, pose_dir, args.partition, args.train_sequences, par.seq_len, overlap=1, sample_times=par.sample_times, shuffle=True, sort=True)
+else: # case: create training and validtion dataset from given list of sequences
+    print('make train data from sequences: {} (dataset: {})'.format(args.train_sequences, args.dataset))
+    train_df = get_data_info(image_dir, pose_dir, folder_list=args.train_sequences, seq_len_range=par.seq_len, overlap=1, sample_times=par.sample_times)
+    print('make validation data from sequences: {} (dataset: {})'.format(args.valid_sequences, args.dataset))
+    valid_df = get_data_info(image_dir, pose_dir, folder_list=args.valid_sequences, seq_len_range=par.seq_len, overlap=1, sample_times=par.sample_times)
 
 print('Create Dataset Loaders')
-train_sampler = SortedRandomBatchSampler(train_df, par.batch_size, drop_last=True)
+train_sampler = SortedRandomBatchSampler(train_df, args.batch_size, drop_last=True)
 train_dataset = ImageSequenceDataset(train_df, par.resize_mode, (par.img_w, par.img_h), par.img_means, par.img_stds, par.minus_point_5) # NOTE why swap h and w?
-train_dl = DataLoader(train_dataset, batch_sampler=train_sampler, num_workers=par.n_processors, pin_memory=par.pin_mem)
+train_dl = DataLoader(train_dataset, batch_sampler=train_sampler, num_workers=args.n_processors, pin_memory=par.pin_mem)
 
-valid_sampler = SortedRandomBatchSampler(valid_df, par.batch_size, drop_last=True)
+valid_sampler = SortedRandomBatchSampler(valid_df, args.batch_size, drop_last=True)
 valid_dataset = ImageSequenceDataset(valid_df, par.resize_mode, (par.img_w, par.img_h), par.img_means, par.img_stds, par.minus_point_5) # NOTE why swap h and w?
-valid_dl = DataLoader(valid_dataset, batch_sampler=valid_sampler, num_workers=par.n_processors, pin_memory=par.pin_mem)
+valid_dl = DataLoader(valid_dataset, batch_sampler=valid_sampler, num_workers=args.n_processors, pin_memory=par.pin_mem)
 
 print('Number of samples in training dataset: ', len(train_df.index))
 print('Number of samples in validation dataset: ', len(valid_df.index))
@@ -90,17 +96,19 @@ else:
 
 ## Load FlowNet weights
 # NOTE the pretrained model assumes image rgb values in range [-0.5, 0.5]
-if par.pretrained_flownet and not args.resume:
-    print('Load pretrained FlowNet weights')
+if args.pretrained_flownet and not args.resume:
+    print('load pretrained FlowNet weights')
     if use_cuda:
-        pretrained_w = torch.load(par.pretrained_flownet)
+        pretrained_w = torch.load(args.pretrained_flownet)
     else:
-        pretrained_w = torch.load(par.pretrained_flownet, map_location='cpu')
+        pretrained_w = torch.load(args.pretrained_flownet, map_location='cpu')
     # Use conv-layer-weights of FlowNet for DeepVO conv-layers
     model_dict = M_deepvo.state_dict()
     update_dict = {k: v for k, v in pretrained_w['state_dict'].items() if k in model_dict}
     model_dict.update(update_dict)
     M_deepvo.load_state_dict(model_dict)
+else:
+    print('weights will be initialized randomly')
 
 ## Create Optimizer
 if par.optim['opt'] == 'Adam':
@@ -123,20 +131,20 @@ if args.resume:
 tb_dir = os.path.join(os.path.join(args.log_dir, 'tensorboard'), args.run_name)
 tb = SummaryWriter(log_dir=tb_dir)
 if use_cuda:
-    tb.add_graph(M_deepvo, torch.zeros(par.batch_size, int(sum(par.seq_len)/2), 3, par.img_w, par.img_h, dtype=torch.cuda.FloatTensor))
+    tb.add_graph(M_deepvo, torch.zeros(args.batch_size, int(sum(par.seq_len)/2), 3, par.img_w, par.img_h, dtype=torch.cuda.FloatTensor))
 else:
-    tb.add_graph(M_deepvo, torch.zeros(par.batch_size, int(sum(par.seq_len)/2), 3, par.img_w, par.img_h, dtype=torch.float32))
+    tb.add_graph(M_deepvo, torch.zeros(args.batch_size, int(sum(par.seq_len)/2), 3, par.img_w, par.img_h, dtype=torch.float32))
 print('TensorBoard will log to: {}'.format(tb_dir))
 
 ## Train Loop
 min_loss_t = 1e10
 min_loss_v = 1e10
 M_deepvo.train()
-epochs = range(par.epochs) if not args.resume else range(args.start_epoch, args.start_epoch + par.epochs)
+epochs = range(args.epochs) if not args.resume else range(args.start_epoch, args.start_epoch + args.epochs)
 for ep in epochs:
     st_t = time.time()
     print('='*50)
-    print('epoch {}/{}'.format(ep+1, par.epochs))
+    print('epoch {}/{}'.format(ep+1, args.epochs))
 
     # train model
     M_deepvo.train()
