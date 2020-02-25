@@ -18,30 +18,21 @@ from torch.utils.data import DataLoader
 argparser = argparse.ArgumentParser(description="DeepVO Testing")
 argparser.add_argument('model', type=str, help="path to trained model")
 argparser.add_argument('out', type=str, help="path where estimates will be saved")
-argparser.add_argument('--dataset_dir', '-ds', type=str, default=None, help="directory of dataset, if not set it will be read from params")
-argparser.add_argument('--sequences', '-seq', type=str, default=None, nargs='+', help="list of video sequences (indices) used for preprocessing, if not set it will be read from params")
+argparser.add_argument('dataset', type=str, help="dataset base directory")
+argparser.add_argument('sequences', type=str, nargs='+', help="video indices to test on")
 args = argparser.parse_args()
 
 if __name__ == '__main__':
 
-    # Specify dataset to test on
-    if args.dataset_dir:
-        par.data_dir = args.dataset_dir
-        par.image_dir = os.path.join(par.data_dir, 'images')
-        par.pose_dir = os.path.join(par.data_dir, 'poses_gt')
+    # set dataset to test on
+    image_dir = os.path.join(args.dataset, 'images')
+    pose_dir = os.path.join(args.dataset, 'poses_gt')
 
-    # Specify video sequences to test on
-    if args.sequences:
-        sequences = args.sequences
-    else:
-        sequences = par.train_seq + list(set(par.valid_seq) - set(par.train_seq)) # NOTE train_video ∪ valid_video, i.e. removing duplicates if exist
-
-    # Prepare directory structure
+    # prepare directory structure
     load_model_path = args.model
-    save_dir = args.out
-    Path(save_dir).mkdir(parents=True, exist_ok=True)
+    Path(args.out).mkdir(parents=True, exist_ok=True)
 
-    # Load model
+    # load model
     M_deepvo = DeepVO(par.img_h, par.img_w, par.batch_norm)
     use_cuda = torch.cuda.is_available()
     if use_cuda:
@@ -49,25 +40,25 @@ if __name__ == '__main__':
         M_deepvo.load_state_dict(torch.load(load_model_path))
     else:
         M_deepvo.load_state_dict(torch.load(load_model_path, map_location={'cuda:0': 'cpu'}))
-    print('Load model from: ', load_model_path)
+    print('load model from: ', load_model_path)
 
-    # Prepare dataset
+    # prepare dataset
     n_workers = 1
     seq_len = int((par.seq_len[0]+par.seq_len[1])/2)
     overlap = seq_len - 1
     print('seq_len = {},  overlap = {}'.format(seq_len, overlap))
     batch_size = par.batch_size
 
-    # Test loop
-    for test_seq in sequences:
+    # test loop
+    for test_seq in args.sequences:
         # make dataloader
-        df = get_data_info(folder_list=[test_seq], seq_len_range=[seq_len, seq_len], overlap=overlap, sample_times=1, shuffle=False, sort=False)
+        df = get_data_info(image_dir, pose_dir, folder_list=[test_seq], seq_len_range=[seq_len, seq_len], overlap=overlap, sample_times=1, shuffle=False, sort=False)
         df = df.loc[df.seq_len == seq_len]  # drop last
         dataset = ImageSequenceDataset(df, par.resize_mode, (par.img_w, par.img_h), par.img_means, par.img_stds, par.minus_point_5)
         dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=n_workers)
 
         # load gt poses
-        gt_pose = np.load(os.path.join(par.pose_dir, '{}.npy'.format(test_seq))) # (n_images, 6)
+        gt_pose = np.load(os.path.join(pose_dir, '{}.npy'.format(test_seq))) # (n_images, 6)
 
         # Predict
         M_deepvo.eval()
@@ -110,11 +101,11 @@ if __name__ == '__main__':
                 answer.append(last_pose.tolist())
 
         print('len(answer):', len(answer))
-        print('expect len:', len(glob.glob(os.path.join(par.image_dir, test_seq, '*.png'))))
+        print('expect len:', len(glob.glob(os.path.join(image_dir, test_seq, '*.png'))))
         print('Predict use {} sec'.format(time.time() - st_t))
 
-        # Save answer
-        with open(os.path.join(save_dir, 'out_{}.txt'.format(test_seq)), 'w') as f:
+        # save answer
+        with open(os.path.join(args.out, 'out_{}.txt'.format(test_seq)), 'w') as f:
             for pose in answer:
                 if type(pose) == list:
                     f.write(', '.join([str(p) for p in pose]))
@@ -122,7 +113,7 @@ if __name__ == '__main__':
                     f.write(str(pose))
                 f.write('\n')
 
-        # Calculate loss
+        # calculate loss
         loss = 0
         for t in range(len(gt_pose)):
             angle_loss = np.sum((answer[t][:3] - gt_pose[t,:3]) ** 2)

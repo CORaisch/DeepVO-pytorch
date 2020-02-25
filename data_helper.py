@@ -14,13 +14,13 @@ from torch.utils.data.sampler import Sampler
 from torchvision import transforms
 
 
-def get_data_info(folder_list, seq_len_range, overlap, sample_times=1, pad_y=False, shuffle=False, sort=True):
+def get_data_info(image_dir, pose_dir, folder_list, seq_len_range, overlap, sample_times=1, pad_y=False, shuffle=False, sort=True):
     X_path, Y = [], []
     X_len = []
     for folder in folder_list:
         start_t = time.time()
-        poses = np.load(os.path.join(par.pose_dir, '{}.npy'.format(folder))) # (n_images, 6)
-        fpaths = glob.glob(os.path.join(par.image_dir, folder, '*.png'))
+        poses = np.load(os.path.join(pose_dir, '{}.npy'.format(folder))) # (n_images, 6)
+        fpaths = glob.glob(os.path.join(image_dir, folder, '*.png'))
         fpaths.sort()
         # Fixed seq_len
         if seq_len_range[0] == seq_len_range[1]:
@@ -80,7 +80,7 @@ def get_data_info(folder_list, seq_len_range, overlap, sample_times=1, pad_y=Fal
     return df
 
 
-def get_partition_data_info(partition, folder_list, seq_len_range, overlap, sample_times=1, pad_y=False, shuffle=False, sort=True):
+def get_partition_data_info(image_dir, pose_dir, partition, folder_list, seq_len_range, overlap, sample_times=1, pad_y=False, shuffle=False, sort=True):
     X_path = [[], []]
     Y = [[], []]
     X_len = [[], []]
@@ -89,8 +89,8 @@ def get_partition_data_info(partition, folder_list, seq_len_range, overlap, samp
     for part in range(2):
         for folder in folder_list:
             start_t = time.time()
-            poses = np.load(os.path.join(par.pose_dir, '{}.npy'.format(folder)))  # (n_images, 6)
-            fpaths = glob.glob(os.path.join(par.image_dir, folder, '*.png'))
+            poses = np.load(os.path.join(pose_dir, '{}.npy'.format(folder)))  # (n_images, 6)
+            fpaths = glob.glob(os.path.join(image_dir, folder, '*.png'))
             fpaths.sort()
 
             # Get the middle section as validation set
@@ -140,7 +140,6 @@ def get_partition_data_info(partition, folder_list, seq_len_range, overlap, samp
             df = df.sort_values(by=['seq_len'], ascending=False)
         df_list.append(df)
     return df_list
-
 
 class SortedRandomBatchSampler(Sampler):
     def __init__(self, info_dataframe, batch_size, drop_last=False):
