@@ -43,8 +43,12 @@
 
 DS=KITTI # NOTE fill in DS to copy, options: KITTI, CARLA
 EXPERIMENT=sample_name # NOTE fill in experiment name
+EPOCHS=250 # NOTE fill in DS to copy, options: KITTI, CARLA
+BATCH_SIZE=8 # NOTE fill in DS to copy, options: KITTI, CARLA
 START_EP=250 # NOTE fill in start epoch
-ids=( "00" "01" "02" "03" "04" "05" "06" "07" "08" "09" "10" ) # NOTE fill in ids to copy
+TRAIN_SEQ="00 01 02 05 08 09" # NOTE fill in start epoch
+VALID_SEQ="03 04 06 10" # NOTE fill in start epoch
+ids=( "00" "01" "02" "03" "04" "05" "06" "07" "08" "09" "10" ) # NOTE fill in sequences to copy
 
 HOME=/home/raisch
 PROJECT_DIR=${HOME}/DeepVO-pytorch
@@ -86,6 +90,6 @@ IMG_FILE=/common/singularityImages/TCML-Cuda10_0Tensorflow2_0_0.simg
 
 # NOTE check if call is as desired
 echo "execute training..."
-singularity exec --nv ${IMG_FILE} python3 /scratch/${SLURM_JOB_ID}/train.py ${EXPERIMENT_DIR} -log ${PROJECT_DIR}/logs -run ${EXPERIMENT} --resume -ep ${START_EP} -load_model ${EXPERIMENT_DIR}/${EXPERIMENT}_valid.model -load_optim ${EXPERIMENT_DIR}/${EXPERIMENT}_valid.optimizer -ds /scratch/${SLURM_JOB_ID}
+singularity exec --nv ${IMG_FILE} python3 /scratch/${SLURM_JOB_ID}/train.py ${EXPERIMENT_DIR} /scratch/${SLURM_JOB_ID} ${EPOCHS} ${BATCH_SIZE} ${TRAIN_SEQ} -vseq ${VALID_SEQ} -log ${PROJECT_DIR}/logs -run ${EXPERIMENT} --resume -load_model ${EXPERIMENT_DIR}/${EXPERIMENT}_valid.model -load_optim ${EXPERIMENT_DIR}/${EXPERIMENT}_valid.optimizer -ep ${START_EP}
 echo " done!"
 

@@ -43,7 +43,7 @@
 
 DS=KITTI # NOTE fill in DS to copy, options: KITTI, CARLA
 EXPERIMENT=sample_name # NOTE fill in experiment name
-ids=( "00" "01" "02" "03" "04" "05" "06" "07" "08" "09" "10" ) # NOTE fill in ids to copy
+ids=( "00" "01" "02" "03" "04" "05" "06" "07" "08" "09" "10" ) # NOTE fill in sequences to copy
 
 HOME=/home/raisch
 PROJECT_DIR=${HOME}/DeepVO-pytorch
@@ -85,5 +85,5 @@ IMG_FILE=/common/singularityImages/TCML-Cuda10_0Tensorflow2_0_0.simg
 
 # NOTE check if call is as desired
 echo "execute testing..."
-singularity exec --nv ${IMG_FILE} python3 /scratch/${SLURM_JOB_ID}/test.py ${EXPERIMENT_DIR}/${EXPERIMENT}_valid.model ${EXPERIMENT_DIR}/test_on_${DS} -ds /scratch/${SLURM_JOB_ID} -seq $(printf "%s " "${ids[@]}")
+singularity exec --nv ${IMG_FILE} python3 /scratch/${SLURM_JOB_ID}/test.py ${EXPERIMENT_DIR}/${EXPERIMENT}_valid.model ${EXPERIMENT_DIR}/test_on_${DS} -ds /scratch/${SLURM_JOB_ID} $(printf "%s " "${ids[@]}")
 echo " done!"
