@@ -3,8 +3,6 @@
 # builtins
 import os, time, argparse
 from pathlib import Path
-# project dependencies
-from params import par
 # external dependencies
 import numpy as np
 import matplotlib.pyplot as plt
@@ -51,41 +49,28 @@ def route_to_png_plain(gt, out, path, step=200):
 
 # parse passed arguments
 argparser = argparse.ArgumentParser(description="DeepVO Visualization")
-argparser.add_argument('src', type=str, help="path from where DeepVO trajectories will be read")
-argparser.add_argument('dst', type=str, help="path where images will be saved")
-argparser.add_argument('--gt_poses', '-gt', type=str, default=None, help="path to GT poses files, if not set it will be read from params")
-argparser.add_argument('--sequences', '-seq', type=str, default=None, nargs='+', help="list of videos (indices) used for preprocessing, if not set it will be read from params")
-argparser.add_argument('--gradient_color', '-gradient', action='store_true', help="when set trajectory will be colorized depending on local error.")
-argparser.add_argument('--both', '-both', action='store_true', help="when set trajectory will be saved in colorized and plain version.")
+argparser.add_argument('estimates', type=str, help="path from where DeepVO trajectories will be read")
+argparser.add_argument('out', type=str, help="path where images will be saved")
+argparser.add_argument('poses', type=str, help="path to GT poses files")
+argparser.add_argument('sequences', type=str, nargs='+', help="video indices to visualize")
+argparser.add_argument('--gradient_color', '-gradient', action='store_true', help="when set trajectory will be colorized depending on local error. If not set (default) only plain colored plots will be made")
+argparser.add_argument('--both', '-both', action='store_true', help="when set trajectory will be saved in colorized and plain versio")
 args = argparser.parse_args()
 
 # setup directory structure
 if args.both or not args.gradient_color:
-    Path(os.path.join(args.dst, 'plain')).mkdir(parents=True, exist_ok=True)
+    Path(os.path.join(args.out, 'plain')).mkdir(parents=True, exist_ok=True)
 if args.both or args.gradient_color:
-    Path(os.path.join(args.dst, 'color')).mkdir(parents=True, exist_ok=True)
+    Path(os.path.join(args.out, 'color')).mkdir(parents=True, exist_ok=True)
 
-# Load GT and predicted poses
-if args.gt_poses and args.sequences: # case: take paths from args
-    print('[INFO] GT poses and video sequences to visualize will be read from arguments')
-    gt_poses = args.gt_poses
-    sequences = args.sequences
-    pass
-elif args.gt_poses ^ args.sequences: # case: both args must be set to read from args
-    print('[ERROR] \'--gt_poses\' and \'--sequences\' must be both set or none of both is set')
-    exit()
-else:
-    print('[INFO] GT poses and video sequences to visualize will be read from params')
-    gt_poses = par.pose_dir
-    sequences = par.train_seq + list(set(par.valid_seq) - set(par.train_seq)) # NOTE train_video ∪ valid_video, i.e. removing duplicates if exist
-
-for seq in sequences:
+# plot estimates against gt
+for seq in args.sequences:
     print('='*50)
     print('Sequence {}'.format(seq))
 
-    gt_pose_path = os.path.join(gt_poses, seq + '.npy')
+    gt_pose_path = os.path.join(args.poses, seq + '.npy')
     gt = np.load(gt_pose_path)
-    est_path = os.path.join(args.src, 'out_{}.txt'.format(seq))
+    est_path = os.path.join(args.estimates, 'out_{}.txt'.format(seq))
     try:
         with open(est_path, 'r') as f:
             # read in estimated trajectory
@@ -102,9 +87,9 @@ for seq in sequences:
 
             # draw images
             if args.both or not args.gradient_color:
-                route_to_png_plain(gt, est, args.dst)
+                route_to_png_plain(gt, est, args.out)
             if args.both or args.gradient_color:
-                route_to_png_colorized(gt, est, args.dst)
+                route_to_png_colorized(gt, est, args.out)
     except FileNotFoundError:
         print('[WARNING] file \'{}\' does not exist, it will be skipped'.format(est_path))
 
