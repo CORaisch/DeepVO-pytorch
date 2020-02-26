@@ -46,6 +46,7 @@ DS2=KITTI # NOTE fill in DS to copy, options: KITTI, CARLA
 EXPERIMENT=sample_name # NOTE fill in experiment name
 EPOCHS=250 # NOTE fill in DS to copy, options: KITTI, CARLA
 BATCH_SIZE=8 # NOTE fill in DS to copy, options: KITTI, CARLA
+START_EP=250 # NOTE fill in start epoch
 TRAIN_SEQ="00 01 03 05 06 07 09" # NOTE fill in train sequences
 VALID_SEQ="02 04 08" # NOTE fill in valid sequences
 ids=( "00" "01" "02" "03" "04" "05" "06" "07" "08" "09" "10" ) # NOTE fill in sequences to copy for training and first validation
