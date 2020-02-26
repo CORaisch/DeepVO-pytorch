@@ -67,7 +67,7 @@ do
 done
 
 echo "copy dataset for second validation to /scratch/${SLURM_JOB_ID}/second:"
-mkdir /scratch/${SLURM_JOB_ID}/second/images /scratch/${SLURM_JOB_ID}/second/poses_gt
+mkdir -p /scratch/${SLURM_JOB_ID}/second/images /scratch/${SLURM_JOB_ID}/second/poses_gt
 for id in "${ids2[@]}"
 do
     echo "copy sequence ${id}..."
