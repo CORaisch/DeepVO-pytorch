@@ -63,7 +63,7 @@ args.partition = 0 if args.valid_sequences else args.partition
 if bool(args.dataset2) ^ bool(args.valid_sequences2):
     print('[ERROR] [--dataset2] and [--valid_sequences2] must both be set if you want to use second validation, else set none of them')
     exit()
-use_second_validation = bool(args.dataset2 and args.valid_sequences2)
+use_second_validation = bool(args.dataset2) and bool(args.valid_sequences2)
 
 
 ## Prepare Data
