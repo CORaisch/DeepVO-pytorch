@@ -20,8 +20,10 @@ argparser.add_argument('model_out', type=str, help="path where trained model wil
 argparser.add_argument('dataset', type=str, help="dataset base directory")
 argparser.add_argument('epochs', type=int, help="number epochs to train")
 argparser.add_argument('batch_size', type=int, help="batch size for training (good results for 8 so far)")
-argparser.add_argument('train_sequences', type=str, nargs='+', help="video indices used for training")
-argparser.add_argument('--valid_sequences', '-vseq', type=str, default=None, nargs='+', help="video indices used for validation, if not set validation data will be created from [train_sequences] by partitioning using value of [--partition]")
+argparser.add_argument('train_sequences', type=str, nargs='+', help="video indices from [dataset] used for training")
+argparser.add_argument('--valid_sequences', '-vseq', type=str, default=None, nargs='+', help="video indices from [dataset] used for validation, if not set validation data will be created from [train_sequences] by partitioning using the value of [--partition]")
+argparser.add_argument('--valid_sequences2', '-vseq2', type=str, default=None, nargs='+', help="video indices from [--dataset2] used for second validation, intended to be used if training should additionally be validated on alternative dataset")
+argparser.add_argument('--dataset2', '-ds2', type=str, default=None, help="base directory of dataset used for second validation, intended to be used if training should additionally be validated on alternative dataset")
 argparser.add_argument('--run_name', '-run', type=str, default='test_run', help="will be used for logging and naming of saved data (default: test_run)")
 argparser.add_argument('--pretrained_flownet', '-flownet', type=str, default=None, help="pretrained flownet weights, if not set weights will be initialized randomly, will be ignored if [--resume] is set")
 argparser.add_argument('--log_dir', '-log', type=str, default='logs', help="directory where log data will be saved")
@@ -37,7 +39,7 @@ args = argparser.parse_args()
 ## Handle Arguments
 # if training is resumed model_load_path and optimizer_load_path must be set too
 if args.resume and not (args.model_load_path and args.optimizer_load_path):
-    print('[ERROR] if \'--resume\' flag is set both \'--model_load_path\' and \'--optimizer_load_path\' must be specified')
+    print('[ERROR] if [--resume] flag is set both, [--model_load_path] and [--optimizer_load_path] must be set too')
     exit()
 # create required directory structure for model_save_path
 model_file = args.run_name + '.model'
@@ -57,8 +59,12 @@ image_dir = os.path.join(args.dataset, 'images')
 pose_dir = os.path.join(args.dataset, 'poses_gt')
 # if valid_sequences are passed set partition to None so that datasets will be created from train and valid sequences
 args.partition = 0 if args.valid_sequences else args.partition
+# if second validation is requested both args, -ds2 and -vseq2 must be set
+if bool(args.dataset2) ^ bool(args.valid_sequences2):
+    print('[ERROR] [--dataset2] and [--valid_sequences2] must both be set if you want to use second validation, else set none of them')
+    exit()
+use_second_validation = bool(args.dataset2 and args.valid_sequences2)
 
-# import pdb; pdb.set_trace()
 
 ## Prepare Data
 print('subdivide trajectories into subsequences of random lengths between {} and {}'.format(par.seq_len[0], par.seq_len[1]))
@@ -81,9 +87,19 @@ valid_sampler = SortedRandomBatchSampler(valid_df, args.batch_size, drop_last=Tr
 valid_dataset = ImageSequenceDataset(valid_df, par.resize_mode, (par.img_w, par.img_h), par.img_means, par.img_stds, par.minus_point_5) # NOTE why swap h and w?
 valid_dl = DataLoader(valid_dataset, batch_sampler=valid_sampler, num_workers=args.n_processors, pin_memory=par.pin_mem)
 
+# make second validtion dataset
+if use_second_validation:
+    print('make second validation data from sequences: {} (dataset: {})'.format(args.valid_sequences2, args.dataset2))
+    valid_df2 = get_data_info(os.path.join(args.dataset2, 'images'), os.path.join(args.dataset2, 'poses_gt'), folder_list=args.valid_sequences2, seq_len_range=par.seq_len, overlap=1, sample_times=par.sample_times)
+    valid_sampler2 = SortedRandomBatchSampler(valid_df2, args.batch_size, drop_last=True)
+    valid_dataset2 = ImageSequenceDataset(valid_df2, par.resize_mode, (par.img_w, par.img_h), par.img_means, par.img_stds, par.minus_point_5) # NOTE why swap h and w?
+    valid_dl2 = DataLoader(valid_dataset2, batch_sampler=valid_sampler2, num_workers=args.n_processors, pin_memory=par.pin_mem)
+
 print('Number of samples in training dataset: ', len(train_df.index))
 print('Number of samples in validation dataset: ', len(valid_df.index))
+print('Number of samples in second validation dataset: ', len(valid_df2.index)) if use_second_validation else None
 print('='*50)
+
 
 ## Prepare Model
 M_deepvo = DeepVO(par.img_h, par.img_w, par.batch_norm)
@@ -97,7 +113,7 @@ else:
 ## Load FlowNet weights
 # NOTE the pretrained model assumes image rgb values in range [-0.5, 0.5]
 if args.pretrained_flownet and not args.resume:
-    print('load pretrained FlowNet weights')
+    print('load conv weights from pretrained FlowNet model ({})'.format(args.pretrained_flownet))
     if use_cuda:
         pretrained_w = torch.load(args.pretrained_flownet)
     else:
@@ -107,8 +123,10 @@ if args.pretrained_flownet and not args.resume:
     update_dict = {k: v for k, v in pretrained_w['state_dict'].items() if k in model_dict}
     model_dict.update(update_dict)
     M_deepvo.load_state_dict(model_dict)
+elif not args.pretrained_flownet and not args.resume:
+    print('conv weights will be initialized randomly')
 else:
-    print('weights will be initialized randomly')
+    print('resume training, weights will be initialized from {}'.format(args.model_load_path))
 
 ## Create Optimizer
 if par.optim['opt'] == 'Adam':
@@ -128,17 +146,16 @@ if args.resume:
     optimizer.load_state_dict(torch.load(args.optimizer_load_path))
 
 ## Setup Logging
-tb_dir = os.path.join(os.path.join(args.log_dir, 'tensorboard'), args.run_name)
+tb_dir = os.path.join(args.log_dir, 'tensorboard', args.run_name)
 tb = SummaryWriter(log_dir=tb_dir)
-if use_cuda:
-    tb.add_graph(M_deepvo, torch.zeros(args.batch_size, int(sum(par.seq_len)/2), 3, par.img_w, par.img_h, dtype=torch.cuda.FloatTensor))
-else:
-    tb.add_graph(M_deepvo, torch.zeros(args.batch_size, int(sum(par.seq_len)/2), 3, par.img_w, par.img_h, dtype=torch.float32))
+_ttype = torch.FloatTensor if use_cuda else torch.float32
+tb.add_graph(M_deepvo, torch.zeros([args.batch_size, int(sum(par.seq_len)/2), 3, par.img_w, par.img_h], dtype=_ttype))
 print('TensorBoard will log to: {}'.format(tb_dir))
 
 ## Train Loop
-min_loss_t = 1e10
-min_loss_v = 1e10
+min_loss_t  = 1e10
+min_loss_v  = 1e10
+min_loss_v2 = 1e10
 M_deepvo.train()
 epochs = range(args.epochs) if not args.resume else range(args.start_epoch, args.start_epoch + args.epochs)
 for ep in epochs:
@@ -149,7 +166,6 @@ for ep in epochs:
     # train model
     M_deepvo.train()
     loss_mean = 0
-    t_loss_list = []
     for it, (_, t_x, t_y) in enumerate(train_dl):
         print('train batch {}/{}, '.format(it+1, len(train_dl)), end='', flush=True)
         if use_cuda:
@@ -157,7 +173,6 @@ for ep in epochs:
             t_y = t_y.cuda(non_blocking=par.pin_mem)
         ls = M_deepvo.step(t_x, t_y, optimizer).data.cpu().numpy()
         print('loss:', float(ls))
-        t_loss_list.append(float(ls))
         loss_mean += float(ls)
         if par.optim == 'Cosine':
             lr_scheduler.step()
@@ -169,7 +184,6 @@ for ep in epochs:
     st_t = time.time()
     M_deepvo.eval()
     loss_mean_valid = 0
-    v_loss_list = []
     for it, (_, v_x, v_y) in enumerate(valid_dl):
         print('valid batch {}/{}, '.format(it+1, len(valid_dl)), end='', flush=True)
         if use_cuda:
@@ -177,11 +191,29 @@ for ep in epochs:
             v_y = v_y.cuda(non_blocking=par.pin_mem)
         v_ls = M_deepvo.get_loss(v_x, v_y).data.cpu().numpy()
         print('loss:', float(v_ls))
-        v_loss_list.append(float(v_ls))
         loss_mean_valid += float(v_ls)
     loss_mean_valid /= len(valid_dl)
     tb.add_scalar('Loss/valid', loss_mean_valid, ep) # log ep valid loss with tensorboard
     print('validation took {:.1f} sec, mean loss: {}'.format(time.time()-st_t, loss_mean_valid))
+
+    # validate model second time if requested
+    if use_second_validation:
+        st_t = time.time()
+        M_deepvo.eval()
+        loss_mean_valid2 = 0
+        for it, (_, v_x, v_y) in enumerate(valid_dl2):
+            print('2nd valid batch {}/{}, '.format(it+1, len(valid_dl2)), end='', flush=True)
+            if use_cuda:
+                v_x = v_x.cuda(non_blocking=par.pin_mem)
+                v_y = v_y.cuda(non_blocking=par.pin_mem)
+            v_ls = M_deepvo.get_loss(v_x, v_y).data.cpu().numpy()
+            print('loss:', float(v_ls))
+            loss_mean_valid2 += float(v_ls)
+        loss_mean_valid2 /= len(valid_dl2)
+        tb.add_scalar('Loss/2nd valid', loss_mean_valid2, ep) # log ep valid loss with tensorboard
+        print('2nd validation took {:.1f} sec, mean loss: {}'.format(time.time()-st_t, loss_mean_valid2))
+
+    ## save models
 
     # save model if valid loss decreases
     check_interval = 1
@@ -195,6 +227,20 @@ for ep in epochs:
         tb.add_scalar('Checkpoints/valid', loss_mean_valid, ep)
     else:
         tb.add_scalar('Checkpoints/valid', 0.0, ep)
+
+    if use_second_validation:
+        # save model if 2nd valid loss decreases
+        check_interval = 1
+        if loss_mean_valid2 < min_loss_v2 and ep % check_interval == 0:
+            min_loss_v2 = loss_mean_valid2
+            print('Save model at ep {}, mean of 2nd valid loss: {}'.format(ep+1, loss_mean_valid2))
+            _model_save = os.path.join(model_base, os.path.splitext(model_file)[0] + '_valid2' + os.path.splitext(model_file)[1])
+            _optim_save = os.path.join(optimizer_base, os.path.splitext(optimizer_file)[0] + '_valid2' + os.path.splitext(optimizer_file)[1])
+            torch.save(M_deepvo.state_dict(), _model_save)
+            torch.save(optimizer.state_dict(), _optim_save)
+            tb.add_scalar('Checkpoints/2nd valid', loss_mean_valid, ep)
+        else:
+            tb.add_scalar('Checkpoints/2nd valid', 0.0, ep)
 
     # save model if training loss decreases
     check_interval = 1
