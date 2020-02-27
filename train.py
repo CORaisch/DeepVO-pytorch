@@ -148,7 +148,7 @@ if args.resume:
 ## Setup Logging
 tb_dir = os.path.join(args.log_dir, 'tensorboard', args.run_name)
 tb = SummaryWriter(log_dir=tb_dir)
-_ttype = torch.FloatTensor if use_cuda else torch.float32
+_ttype = torch.cuda.FloatTensor if use_cuda else torch.float32
 tb.add_graph(M_deepvo, torch.zeros([args.batch_size, int(sum(par.seq_len)/2), 3, par.img_w, par.img_h], dtype=_ttype))
 print('TensorBoard will log to: {}'.format(tb_dir))
 
