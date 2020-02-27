@@ -171,7 +171,7 @@ class SortedRandomBatchSampler(Sampler):
             start_idx += n_sample
         # NOTE so far the order of 'list_batch_indexes' is like: [all batches with seq_len x, all batches with seq_len x-1, ...],
         #      maybe we should finally shuffle 'list_batch_indexes' to prevent correlations according to sequence length
-        #shuffle(list_batch_indexes)
+        shuffle(list_batch_indexes) # FIXME test with this line enabled
         return iter(list_batch_indexes)
 
     def __len__(self):
