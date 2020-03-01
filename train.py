@@ -103,10 +103,12 @@ print('='*50)
 
 ## Prepare Model
 M_deepvo = DeepVO(par.img_h, par.img_w, par.batch_norm)
+_input_rank = torch.zeros((args.batch_size, int(sum(par.seq_len)/2), 3, par.img_w, par.img_h))
 use_cuda = torch.cuda.is_available()
 if use_cuda:
     print('CUDA enabled')
     M_deepvo = M_deepvo.cuda()
+    _input_rank = _input_rank.cuda()
 else:
     print('CUDA disabled')
 
@@ -148,8 +150,7 @@ if args.resume:
 ## Setup Logging
 tb_dir = os.path.join(args.log_dir, 'tensorboard', args.run_name)
 tb = SummaryWriter(log_dir=tb_dir)
-# _ttype = torch.cuda.FloatTensor if use_cuda else torch.float32
-# tb.add_graph(M_deepvo, torch.zeros((args.batch_size, int(sum(par.seq_len)/2), 3, par.img_w, par.img_h), dtype=_ttype))
+tb.add_graph(M_deepvo, _input_rank)
 print('TensorBoard will log to: {}'.format(tb_dir))
 
 ## Train Loop
