@@ -20,6 +20,7 @@ argparser.add_argument('model', type=str, help="path to trained model")
 argparser.add_argument('out', type=str, help="path where estimates will be saved")
 argparser.add_argument('dataset', type=str, help="dataset base directory")
 argparser.add_argument('sequences', type=str, nargs='+', help="video indices to test on")
+argparser.add_argument('--batch_size', '-bs', type=int, default=8, help="batch size for testing (default: 8)")
 args = argparser.parse_args()
 
 if __name__ == '__main__':
@@ -47,7 +48,6 @@ if __name__ == '__main__':
     seq_len = int((par.seq_len[0]+par.seq_len[1])/2)
     overlap = seq_len - 1
     print('seq_len = {},  overlap = {}'.format(seq_len, overlap))
-    batch_size = par.batch_size
 
     # test loop
     for test_seq in args.sequences:
@@ -55,7 +55,7 @@ if __name__ == '__main__':
         df = get_data_info(image_dir, pose_dir, folder_list=[test_seq], seq_len_range=[seq_len, seq_len], overlap=overlap, sample_times=1, shuffle=False, sort=False)
         df = df.loc[df.seq_len == seq_len]  # drop last
         dataset = ImageSequenceDataset(df, par.resize_mode, (par.img_w, par.img_h), par.img_means, par.img_stds, par.minus_point_5)
-        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=n_workers)
+        dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False, num_workers=n_workers)
 
         # load gt poses
         gt_pose = np.load(os.path.join(pose_dir, '{}.npy'.format(test_seq))) # (n_images, 6)
