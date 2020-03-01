@@ -221,8 +221,9 @@ for ep in epochs:
     if loss_mean_valid < min_loss_v and ep % check_interval == 0:
         min_loss_v = loss_mean_valid
         print('Save model at ep {}, mean of valid loss: {}'.format(ep+1, loss_mean_valid))
-        _model_save = os.path.join(model_base, os.path.splitext(model_file)[0] + '_valid' + os.path.splitext(model_file)[1])
-        _optim_save = os.path.join(optimizer_base, os.path.splitext(optimizer_file)[0] + '_valid' + os.path.splitext(optimizer_file)[1])
+        _ext = '_valid_at_ep{}'.format(ep)
+        _model_save = os.path.join(model_base, os.path.splitext(model_file)[0] + _ext + os.path.splitext(model_file)[1])
+        _optim_save = os.path.join(optimizer_base, os.path.splitext(optimizer_file)[0] + _ext + os.path.splitext(optimizer_file)[1])
         torch.save(M_deepvo.state_dict(), _model_save)
         torch.save(optimizer.state_dict(), _optim_save)
         tb.add_scalar('Checkpoints/valid', loss_mean_valid, ep)
@@ -235,8 +236,9 @@ for ep in epochs:
         if loss_mean_valid2 < min_loss_v2 and ep % check_interval == 0:
             min_loss_v2 = loss_mean_valid2
             print('Save model at ep {}, mean of 2nd valid loss: {}'.format(ep+1, loss_mean_valid2))
-            _model_save = os.path.join(model_base, os.path.splitext(model_file)[0] + '_valid2' + os.path.splitext(model_file)[1])
-            _optim_save = os.path.join(optimizer_base, os.path.splitext(optimizer_file)[0] + '_valid2' + os.path.splitext(optimizer_file)[1])
+            _ext = '_valid2_at_ep{}'.format(ep)
+            _model_save = os.path.join(model_base, os.path.splitext(model_file)[0] + _ext + os.path.splitext(model_file)[1])
+            _optim_save = os.path.join(optimizer_base, os.path.splitext(optimizer_file)[0] + _ext + os.path.splitext(optimizer_file)[1])
             torch.save(M_deepvo.state_dict(), _model_save)
             torch.save(optimizer.state_dict(), _optim_save)
             tb.add_scalar('Checkpoints/2nd valid', loss_mean_valid, ep)
@@ -248,8 +250,9 @@ for ep in epochs:
     if loss_mean < min_loss_t and ep % check_interval == 0:
         min_loss_t = loss_mean
         print('Save model at ep {}, mean of train loss: {}'.format(ep+1, loss_mean))
-        _model_save = os.path.join(model_base, os.path.splitext(model_file)[0] + '_train' + os.path.splitext(model_file)[1])
-        _optim_save = os.path.join(optimizer_base, os.path.splitext(optimizer_file)[0] + '_train' + os.path.splitext(optimizer_file)[1])
+        _ext = '_train_at_ep{}'.format(ep)
+        _model_save = os.path.join(model_base, os.path.splitext(model_file)[0] + _ext + os.path.splitext(model_file)[1])
+        _optim_save = os.path.join(optimizer_base, os.path.splitext(optimizer_file)[0] + _ext + os.path.splitext(optimizer_file)[1])
         torch.save(M_deepvo.state_dict(), _model_save)
         torch.save(optimizer.state_dict(), _optim_save)
         tb.add_scalar('Checkpoints/train', loss_mean, ep)
