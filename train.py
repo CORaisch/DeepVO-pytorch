@@ -33,6 +33,7 @@ argparser.add_argument('--optimizer_save_path', '-save_optim', type=str, default
 argparser.add_argument('--resume', '-resume', action='store_true', help="If set training will resume from model given by \'--model_load_path\' and \'--optimizer_load_path\'.")
 argparser.add_argument('--start_epoch', '-ep', type=int, default=0, help="specify where to start counting the epochs, only used when \'--resume\' is set (default: 0)")
 argparser.add_argument('--partition', '-p', type=float, default=0.8, help="set to number in range [0,1] to split train sequences into [-p]%% sequences for training and (1-[-p])%% for validation, will be ignored if [--valid_sequences] is set (default: 0.8)")
+argparser.add_argument('--max_step', '-s', type=int, default=1, help="if set > 1 for all subsequence each rand(1,max_step) will be skipped, this way more distances are simulated")
 argparser.add_argument('--n_processors', '-np', type=int, default=4, help="number of processes to be invoked for dataset loading during training (default: 4)")
 args = argparser.parse_args()
 
@@ -64,6 +65,8 @@ if bool(args.dataset2) ^ bool(args.valid_sequences2):
     print('[ERROR] [--dataset2] and [--valid_sequences2] must both be set if you want to use second validation, else set none of them')
     exit()
 use_second_validation = bool(args.dataset2) and bool(args.valid_sequences2)
+# sync with params
+par.max_step = args.max_step
 
 
 ## Prepare Data
@@ -71,12 +74,15 @@ print('subdivide trajectories into subsequences of random lengths between {} and
 if args.partition > 0: # case: create validation dataset by partitioning the train dataset
     print('make train data from sequences: {} (dataset: {})'.format(args.train_sequences, args.dataset))
     print('make validation data from training sequences by partitioning (p={})'.format(args.partition))
-    train_df, valid_df = get_partition_data_info(image_dir, pose_dir, args.partition, args.train_sequences, par.seq_len, overlap=1, sample_times=par.sample_times, shuffle=True, sort=True)
+    train_df, valid_df = get_partition_data_info(
+        image_dir, pose_dir, args.partition, args.train_sequences, par.seq_len, overlap=1, sample_times=par.sample_times, max_step=par.max_step)
 else: # case: create training and validtion dataset from given list of sequences
     print('make train data from sequences: {} (dataset: {})'.format(args.train_sequences, args.dataset))
-    train_df = get_data_info(image_dir, pose_dir, folder_list=args.train_sequences, seq_len_range=par.seq_len, overlap=1, sample_times=par.sample_times)
+    train_df = get_data_info(
+        image_dir, pose_dir, folder_list=args.train_sequences, seq_len_range=par.seq_len, overlap=1, sample_times=par.sample_times, max_step=par.max_step)
     print('make validation data from sequences: {} (dataset: {})'.format(args.valid_sequences, args.dataset))
-    valid_df = get_data_info(image_dir, pose_dir, folder_list=args.valid_sequences, seq_len_range=par.seq_len, overlap=1, sample_times=par.sample_times)
+    valid_df = get_data_info(
+        image_dir, pose_dir, folder_list=args.valid_sequences, seq_len_range=par.seq_len, overlap=1, sample_times=par.sample_times, max_step=par.max_step)
 
 print('Create Dataset Loaders')
 train_sampler = SortedRandomBatchSampler(train_df, args.batch_size, drop_last=True)
@@ -90,7 +96,8 @@ valid_dl = DataLoader(valid_dataset, batch_sampler=valid_sampler, num_workers=ar
 # make second validtion dataset
 if use_second_validation:
     print('make second validation data from sequences: {} (dataset: {})'.format(args.valid_sequences2, args.dataset2))
-    valid_df2 = get_data_info(os.path.join(args.dataset2, 'images'), os.path.join(args.dataset2, 'poses_gt'), folder_list=args.valid_sequences2, seq_len_range=par.seq_len, overlap=1, sample_times=par.sample_times)
+    valid_df2 = get_data_info(
+        os.path.join(args.dataset2, 'images'), os.path.join(args.dataset2, 'poses_gt'), folder_list=args.valid_sequences2, seq_len_range=par.seq_len, overlap=1, sample_times=par.sample_times, max_step=par.max_step)
     valid_sampler2 = SortedRandomBatchSampler(valid_df2, args.batch_size, drop_last=True)
     valid_dataset2 = ImageSequenceDataset(valid_df2, par.resize_mode, (par.img_w, par.img_h), par.img_means, par.img_stds, par.minus_point_5) # NOTE why swap h and w?
     valid_dl2 = DataLoader(valid_dataset2, batch_sampler=valid_sampler2, num_workers=args.n_processors, pin_memory=par.pin_mem)

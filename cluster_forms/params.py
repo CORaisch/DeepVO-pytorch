@@ -10,6 +10,7 @@ class Parameters():
         # subsequence generation
         self.seq_len = (5, 7) # set min and max length of subsequences for RNN training
         self.sample_times = 3 # when generating subsequences loop will iterate 'sample_times' times over the entire DS
+        self.max_step = 1 # if set > 1 for all subsequence each rand(1,max_step) will be skipped, this way more distances are simulated
 
         # preprocessing
         self.grayscale = False # specifiy if grayscale images should be used for training/testing

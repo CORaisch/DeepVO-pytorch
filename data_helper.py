@@ -13,61 +13,41 @@ from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.sampler import Sampler
 from torchvision import transforms
 
-
-def get_data_info(image_dir, pose_dir, folder_list, seq_len_range, overlap, sample_times=1, pad_y=False, shuffle=False, sort=True):
+def get_data_info(image_dir, pose_dir, folder_list, seq_len_range, overlap, sample_times=1, max_step=1, pad_y=False, shuffle=False, sort=True):
+    # check inputs
+    assert overlap < min(seq_len_range)
+    assert max_step > 0
+    # subsequene each sequence
     X_path, Y = [], []
     X_len = []
     for folder in folder_list:
         start_t = time.time()
-        poses = np.load(os.path.join(pose_dir, '{}.npy'.format(folder))) # (n_images, 6)
+        poses = np.load(os.path.join(pose_dir, '{}.npy'.format(folder))) # (n_images, 15)
         fpaths = glob.glob(os.path.join(image_dir, folder, '*.png'))
         fpaths.sort()
-        # Fixed seq_len
-        if seq_len_range[0] == seq_len_range[1]:
-            if sample_times > 1:
-                sample_interval = int(np.ceil(seq_len_range[0] / sample_times))
-                start_frames = list(range(0, seq_len_range[0], sample_interval))
-                print('Sample start from frame {}'.format(start_frames))
-            else:
-                start_frames = [0]
-
-            for st in start_frames:
-                seq_len = seq_len_range[0]
-                n_frames = len(fpaths) - st
-                jump = seq_len - overlap
-                res = n_frames % seq_len
-                if res != 0:
-                    n_frames = n_frames - res
-                x_segs = [fpaths[i:i+seq_len] for i in range(st, n_frames, jump)]
-                y_segs = [poses[i:i+seq_len] for i in range(st, n_frames, jump)]
-                Y += y_segs
-                X_path += x_segs
-                X_len += [len(xs) for xs in x_segs]
         # Random segment to sequences with diff lengths
-        else:
-            assert(overlap < min(seq_len_range))
-            n_frames = len(fpaths)
-            min_len, max_len = seq_len_range[0], seq_len_range[1]
-            for i in range(sample_times):
-                start = 0
-                while True:
-                    n = np.random.random_integers(min_len, max_len)
-                    if start + n < n_frames:
-                        x_seg = fpaths[start:start+n]
-                        X_path.append(x_seg)
-                        if not pad_y:
-                            Y.append(poses[start:start+n])
-                        else:
-                            pad_zero = np.zeros((max_len-n, 15))
-                            padded = np.concatenate((poses[start:start+n], pad_zero))
-                            Y.append(padded.tolist())
+        n_frames = len(fpaths)
+        min_len, max_len = seq_len_range[0], seq_len_range[1]
+        for i in range(sample_times):
+            start = 0
+            while True:
+                n = np.random.random_integers(min_len, max_len)
+                s = np.random.random_integers(1, max_step)
+                if start + n*s < n_frames:
+                    x_seg = fpaths[start:start+n*s:s]
+                    X_path.append(x_seg)
+                    if not pad_y:
+                        Y.append(poses[start:start+n*s:s])
                     else:
-                        print('Last %d frames is not used' %(start+n-n_frames))
-                        break
-                    start += n - overlap
-                    X_len.append(len(x_seg))
+                        pad_zero = np.zeros((max_len-n, 15))
+                        padded = np.concatenate((poses[start:start+n*s:s], pad_zero))
+                        Y.append(padded.tolist())
+                else:
+                    print('Last %d frames is not used' %(start+(n*s)-n_frames))
+                    break
+                start += s * (n - overlap)
+                X_len.append(len(x_seg))
         print('Folder {} finish in {} sec'.format(folder, time.time()-start_t))
-
     # Convert to pandas dataframes
     data = {'seq_len': X_len, 'image_path': X_path, 'pose': Y}
     df = pd.DataFrame(data, columns = ['seq_len', 'image_path', 'pose'])
@@ -79,67 +59,22 @@ def get_data_info(image_dir, pose_dir, folder_list, seq_len_range, overlap, samp
         df = df.sort_values(by=['seq_len'], ascending=False)
     return df
 
-
-def get_partition_data_info(image_dir, pose_dir, partition, folder_list, seq_len_range, overlap, sample_times=1, pad_y=False, shuffle=False, sort=True):
-    X_path = [[], []]
-    Y = [[], []]
-    X_len = [[], []]
-    df_list = []
-
-    for part in range(2):
-        for folder in folder_list:
-            start_t = time.time()
-            poses = np.load(os.path.join(pose_dir, '{}.npy'.format(folder)))  # (n_images, 6)
-            fpaths = glob.glob(os.path.join(image_dir, folder, '*.png'))
-            fpaths.sort()
-
-            # Get the middle section as validation set
-            n_val = int((1-partition)*len(fpaths))
-            st_val = int((len(fpaths)-n_val)/2)
-            ed_val = st_val + n_val
-            print('st_val: {}, ed_val:{}'.format(st_val, ed_val))
-            if part == 1:
-                fpaths = fpaths[st_val:ed_val]
-                poses = poses[st_val:ed_val]
-            else:
-                fpaths = fpaths[:st_val] + fpaths[ed_val:]
-                poses = np.concatenate((poses[:st_val], poses[ed_val:]), axis=0)
-
-            # Random Segment
-            assert(overlap < min(seq_len_range))
-            n_frames = len(fpaths)
-            min_len, max_len = seq_len_range[0], seq_len_range[1]
-            for i in range(sample_times):
-                start = 0
-                while True:
-                    n = np.random.random_integers(min_len, max_len)
-                    if start + n < n_frames:
-                        x_seg = fpaths[start:start+n]
-                        X_path[part].append(x_seg)
-                        if not pad_y:
-                            Y[part].append(poses[start:start+n])
-                        else:
-                            pad_zero = np.zeros((max_len-n, 6))
-                            padded = np.concatenate((poses[start:start+n], pad_zero))
-                            Y[part].append(padded.tolist())
-                    else:
-                        print('Last %d frames is not used' %(start+n-n_frames))
-                        break
-                    start += n - overlap
-                    X_len[part].append(len(x_seg))
-            print('Folder {} finish in {} sec'.format(folder, time.time()-start_t))
-
-        # Convert to pandas dataframes
-        data = {'seq_len': X_len[part], 'image_path': X_path[part], 'pose': Y[part]}
-        df = pd.DataFrame(data, columns = ['seq_len', 'image_path', 'pose'])
-        # Shuffle through all videos
-        if shuffle:
-            df = df.sample(frac=1)
-        # Sort dataframe by seq_len
-        if sort:
-            df = df.sort_values(by=['seq_len'], ascending=False)
-        df_list.append(df)
-    return df_list
+# TODO test function
+def get_partition_data_info(image_dir, pose_dir, partition, folder_list, seq_len_range, overlap, sample_times=1, max_step=1, pad_y=False, sort=True):
+    # partition must be in ]0.0,1.0[
+    assert partition > 0.0 and partition < 1.0
+    # get total dataframe
+    total_df = get_data_info(
+        image_dir, pose_dir, folder_list, seq_len_range, overlap, sample_times=sample_times, max_step=max_step, pad_y=pad_y, shuffle=False, sort=False)
+    # split total_df into two given the value of partition
+    msk = np.random.rand(total_df.shape[0]) < partition
+    train_df = total_df[msk]
+    valid_df = total_df[~msk]
+    # sort dataframe by seq_len
+    if sort:
+        train_df = train_df.sort_values(by=['seq_len'], ascending=False)
+        valid_df = valid_df.sort_values(by=['seq_len'], ascending=False)
+    return train_df, valid_df
 
 class SortedRandomBatchSampler(Sampler):
     def __init__(self, info_dataframe, batch_size, drop_last=False):
@@ -179,7 +114,7 @@ class SortedRandomBatchSampler(Sampler):
 
 
 # NOTE is sequence_len_list neccesarry ? seems like its rudimentary
-# NOTE check if pose conversion works properly ! else substitute with my code
+# FIXME label transformation is not working correctly -> fix it
 class ImageSequenceDataset(Dataset):
     def __init__(self, info_dataframe, resize_mode='crop', new_sizeize=None, img_mean=None, img_std=(1,1,1), minus_point_5=False):
         # Transforms
@@ -251,6 +186,7 @@ class ImageSequenceDataset(Dataset):
             img_as_tensor = img_as_tensor.unsqueeze(0)
             image_sequence.append(img_as_tensor)
         image_sequence = torch.cat(image_sequence, 0)
+        # NOTE 'groundtruth_sequence' must contain as many poses as 'image_sequence' has images. The first pose will be omited before loss computation.
         return (sequence_len, image_sequence, groundtruth_sequence)
 
     def __len__(self):
