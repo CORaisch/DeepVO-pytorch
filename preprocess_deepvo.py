@@ -119,7 +119,7 @@ if __name__ == '__main__':
     argparser.add_argument('sequences', type=str, nargs='+', help="list of video sequences indices on which preprocessing should be computed")
     argparser.add_argument('--kitti', '-kitti', action='store_true', help="set if preprocessing KITTI data, additional images will be removed for KITTI")
     argparser.add_argument('--grayscale', '-gray', action='store_true', help="set if mean and std image should be computed on grayscale images")
-    argparser.add_argument('--minus_point_5', '-mp5', action='store_false', help="set if pixel range should be shifted to [-0.5,0.5] before preprocessing")
+    argparser.add_argument('--minus_point_5', '-mp5', action='store_true', help="set if pixel range should be shifted to [-0.5,0.5] before preprocessing")
     args = argparser.parse_args()
 
     # set dataset dir
