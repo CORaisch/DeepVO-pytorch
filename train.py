@@ -33,7 +33,7 @@ argparser.add_argument('--optimizer_save_path', '-save_optim', type=str, default
 argparser.add_argument('--resume', '-resume', action='store_true', help="If set training will resume from model given by \'--model_load_path\' and \'--optimizer_load_path\'.")
 argparser.add_argument('--start_epoch', '-ep', type=int, default=0, help="specify where to start counting the epochs, only used when \'--resume\' is set (default: 0)")
 argparser.add_argument('--partition', '-p', type=float, default=0.8, help="set to number in range [0,1] to split train sequences into [-p]%% sequences for training and (1-[-p])%% for validation, will be ignored if [--valid_sequences] is set (default: 0.8)")
-argparser.add_argument('--max_step', '-s', type=int, default=1, help="if set > 1 for all subsequence each rand(1,max_step) will be skipped, this way more distances are simulated")
+argparser.add_argument('--max_step', '-s', type=int, default=None, help="if set > 1 for all subsequence each rand(1,max_step) will be skipped, this way more distances are simulated")
 argparser.add_argument('--n_processors', '-np', type=int, default=4, help="number of processes to be invoked for dataset loading during training (default: 4)")
 args = argparser.parse_args()
 
@@ -66,7 +66,7 @@ if bool(args.dataset2) ^ bool(args.valid_sequences2):
     exit()
 use_second_validation = bool(args.dataset2) and bool(args.valid_sequences2)
 # sync with params
-par.max_step = args.max_step
+par.max_step = args.max_step if args.max_step else par.max_step
 
 
 ## Prepare Data
