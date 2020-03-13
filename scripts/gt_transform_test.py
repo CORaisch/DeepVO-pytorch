@@ -10,7 +10,7 @@ import os, glob, argparse
 from pathlib import Path
 # project dependencies
 from data_helper import get_data_info, ImageSequenceDataset
-from helper import eulerAnglesToRotationMatrix, normalize_angle_delta
+from utils import eulerAnglesToRotationMatrix, normalize_angle_delta
 # external dependencies
 import numpy as np
 import torch
