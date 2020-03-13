@@ -1,6 +1,9 @@
 # builtins
 import numpy as np
 import math
+from os.path import splitext, join
+# external dependencies
+from torch import save
 
 # epsilon for testing whether a number is close to zero
 _EPS = np.finfo(float).eps * 4.0
@@ -91,6 +94,11 @@ def normalize_angle_delta(angle):
     elif(angle < -np.pi):
         angle = 2 * np.pi + angle
     return angle
+
+def save_model_or_optim(model_or_optim, base_dir, base_name, ext):
+    _split = splitext(base_name)
+    _path = join(base_dir, _split[0] + ext + _split[1])
+    save(model_or_optim.state_dict(), _path)
 
 class Singleton:
     def __init__(self, decorated):

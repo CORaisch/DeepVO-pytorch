@@ -7,6 +7,7 @@ from pathlib import Path
 from params import par
 from model import DeepVO
 from data_helper import get_data_info, SortedRandomBatchSampler, ImageSequenceDataset, get_partition_data_info
+from helper import save_model_or_optim
 # external dependencies
 import torch
 from torch.utils.data import DataLoader
@@ -228,11 +229,8 @@ for ep in epochs:
     if loss_mean_valid < min_loss_v and ep % check_interval == 0:
         min_loss_v = loss_mean_valid
         print('Save model at ep {}, mean of valid loss: {}'.format(ep+1, loss_mean_valid))
-        _ext = '_valid'
-        _model_save = os.path.join(model_base, os.path.splitext(model_file)[0] + _ext + os.path.splitext(model_file)[1])
-        _optim_save = os.path.join(optimizer_base, os.path.splitext(optimizer_file)[0] + _ext + os.path.splitext(optimizer_file)[1])
-        torch.save(M_deepvo.state_dict(), _model_save)
-        torch.save(optimizer.state_dict(), _optim_save)
+        save_model_or_optim(M_deepvo, model_base, model_file, '_valid')
+        save_model_or_optim(optimizer, optimizer_base, optimizer_file, '_valid')
         tb.add_scalar('Checkpoints/valid', loss_mean_valid, ep)
     else:
         tb.add_scalar('Checkpoints/valid', 0.0, ep)
@@ -243,11 +241,8 @@ for ep in epochs:
         if loss_mean_valid2 < min_loss_v2 and ep % check_interval == 0:
             min_loss_v2 = loss_mean_valid2
             print('Save model at ep {}, mean of 2nd valid loss: {}'.format(ep+1, loss_mean_valid2))
-            _ext = '_valid2'
-            _model_save = os.path.join(model_base, os.path.splitext(model_file)[0] + _ext + os.path.splitext(model_file)[1])
-            _optim_save = os.path.join(optimizer_base, os.path.splitext(optimizer_file)[0] + _ext + os.path.splitext(optimizer_file)[1])
-            torch.save(M_deepvo.state_dict(), _model_save)
-            torch.save(optimizer.state_dict(), _optim_save)
+            save_model_or_optim(M_deepvo, model_base, model_file, '_valid2')
+            save_model_or_optim(optimizer, optimizer_base, optimizer_file, '_valid2')
             tb.add_scalar('Checkpoints/2nd valid', loss_mean_valid, ep)
         else:
             tb.add_scalar('Checkpoints/2nd valid', 0.0, ep)
@@ -257,11 +252,13 @@ for ep in epochs:
     if loss_mean < min_loss_t and ep % check_interval == 0:
         min_loss_t = loss_mean
         print('Save model at ep {}, mean of train loss: {}'.format(ep+1, loss_mean))
-        _ext = '_train'
-        _model_save = os.path.join(model_base, os.path.splitext(model_file)[0] + _ext + os.path.splitext(model_file)[1])
-        _optim_save = os.path.join(optimizer_base, os.path.splitext(optimizer_file)[0] + _ext + os.path.splitext(optimizer_file)[1])
-        torch.save(M_deepvo.state_dict(), _model_save)
-        torch.save(optimizer.state_dict(), _optim_save)
+        save_model_or_optim(M_deepvo, model_base, model_file, '_train')
+        save_model_or_optim(optimizer, optimizer_base, optimizer_file, '_train')
         tb.add_scalar('Checkpoints/train', loss_mean, ep)
     else:
         tb.add_scalar('Checkpoints/train', 0.0, ep)
+
+# save final model
+print('Save final model with mean of train loss: {}'.format(loss_mean))
+save_model_or_optim(M_deepvo, model_base, model_file, '_final')
+save_model_or_optim(optimizer, optimizer_base, optimizer_file, '_final')
