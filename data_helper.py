@@ -4,7 +4,7 @@ from PIL import Image
 from random import shuffle
 # project dependencies
 from params import par
-from helper import normalize_angle_delta
+from utils import normalize_angle_delta
 # external dependencies
 import numpy as np
 import pandas as pd

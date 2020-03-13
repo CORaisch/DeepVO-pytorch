@@ -7,7 +7,7 @@ from PIL import Image
 # project dependencies
 from params import par
 from model import DeepVO
-from helper import eulerAnglesToRotationMatrix
+from utils import eulerAnglesToRotationMatrix
 from data_helper import get_data_info, ImageSequenceDataset
 # external dependencies
 import numpy as np

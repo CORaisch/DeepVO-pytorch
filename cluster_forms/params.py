@@ -1,5 +1,5 @@
 import os
-from helper import Singleton
+from utils import Singleton
 
 @Singleton
 class Parameters():

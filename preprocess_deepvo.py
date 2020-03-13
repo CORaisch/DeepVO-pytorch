@@ -4,7 +4,7 @@
 import os, argparse, glob, time, math
 from PIL import Image
 # project dependencies
-from helper import R_to_angle
+from utils import R_to_angle
 # external dependencies
 import numpy as np
 import torch

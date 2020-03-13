@@ -7,7 +7,7 @@ from pathlib import Path
 from params import par
 from model import DeepVO
 from data_helper import get_data_info, SortedRandomBatchSampler, ImageSequenceDataset, get_partition_data_info
-from helper import save_model_or_optim
+from utils import save_model_or_optim
 # external dependencies
 import torch
 from torch.utils.data import DataLoader
