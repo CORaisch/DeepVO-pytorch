@@ -33,7 +33,7 @@ def get_data_info(image_dir, pose_dir, folder_list, seq_len_range, overlap, samp
             while True:
                 n = np.random.random_integers(min_len, max_len)
                 s = np.random.random_integers(1, max_step)
-                if start + n*s < n_frames:
+                if start + n*s <= n_frames:
                     x_seg = fpaths[start:start+n*s:s]
                     X_path.append(x_seg)
                     if not pad_y:
