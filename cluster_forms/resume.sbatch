@@ -65,7 +65,7 @@ do
 done
 
 echo "copy sourcecode to /scratch/${SLURM_JOB_ID}/:"
-files=( "data_helper.py" "helper.py" "train.py" "model.py" )
+files=( "data_helper.py" "utils.py" "train.py" "model.py" )
 for file in "${files[@]}"
 do
     rsync --info=progress2 ${PROJECT_DIR}/${file} /scratch/${SLURM_JOB_ID}
