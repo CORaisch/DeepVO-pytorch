@@ -86,7 +86,7 @@ du -sh /scratch/${SLURM_JOB_ID}/images
 #cnn_minst.py <model save path> <mnist data path>
 ####
 
-IMG_FILE=/common/singularityImages/TCML-Cuda10_0Tensorflow2_0_0.simg
+IMG_FILE=/common/singularityImages/TCML-Cuda10_1_TF2_1_0_PT1_4.simg
 
 # NOTE check if call is as desired
 echo "execute training..."
