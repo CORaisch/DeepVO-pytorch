@@ -116,6 +116,7 @@ class SortedRandomBatchSampler(Sampler):
 # NOTE is sequence_len_list neccesarry ? seems like its rudimentary
 # FIXME label transformation is not working correctly -> fix it
 class ImageSequenceDataset(Dataset):
+
     def __init__(self, info_dataframe, resize_mode='crop', new_sizeize=None, img_mean=None, img_std=(1,1,1), minus_point_5=False):
         # Transforms
         transform_ops = []
@@ -128,7 +129,6 @@ class ImageSequenceDataset(Dataset):
         if par.laplace_preprocessing:
             transform_ops.append(transforms.Lambda(preprocess_laplace))
         transform_ops.append(transforms.ToTensor())
-        #transform_ops.append(transforms.Normalize(mean=img_mean, std=img_std))
         self.transformer = transforms.Compose(transform_ops)
         self.minus_point_5 = minus_point_5
         self.normalizer = transforms.Normalize(mean=img_mean, std=img_std)
@@ -138,38 +138,44 @@ class ImageSequenceDataset(Dataset):
         self.image_arr = np.asarray(self.data_info.image_path)  # image paths
         self.groundtruth_arr = np.asarray(self.data_info.pose)
 
+    def _to_euler(self, R):
+        import math
+        # NOTE code taken from: https://www.learnopencv.com/rotation-matrix-to-euler-angles
+        sy = math.sqrt(R[0, 0] * R[0, 0] + R[1, 0] * R[1, 0])
+        singular = sy < 1e-6
+        if not singular:
+            x = math.atan2(R[2, 1], R[2, 2])
+            y = math.atan2(-R[2, 0], sy)
+            z = math.atan2(R[1, 0], R[0, 0])
+        else:
+            x = math.atan2(-R[1, 2], R[1, 1])
+            y = math.atan2(-R[2, 0], sy)
+            z = 0
+        return np.array([x, y, z])
+
+    def _to_mat(self, arr, R):
+        '''arr: [(r_0, r_1, r_2, t_0, t_1, t_2), R], |arr[0]| = 6, R: 3x3 matrix'''
+        t = np.matrix(arr[3:]).reshape((3,1))
+        T = np.matrix(np.eye(4, dtype=R.dtype))
+        T[:3,:3] = R; T[:3,3] = t;
+        return T
+
+    def _inv(self, T):
+        '''T: [R|t] as 4x4 matrix, inv: [R.T|-R.T*t] as 4x4 matrix'''
+        Inv = np.matrix(np.eye(4, dtype=T.dtype))
+        R = T[:3,:3]; t = T[:3,3]
+        Inv[:3,:3] = R.T; Inv[:3,3] = -R.T*t;
+        return Inv
+
     def __getitem__(self, index):
-        raw_groundtruth = np.hsplit(self.groundtruth_arr[index], np.array([6]))
-        groundtruth_sequence = raw_groundtruth[0]
-        groundtruth_rotation = raw_groundtruth[1][0].reshape((3, 3)).T # opposite rotation of the first frame
-        groundtruth_sequence = torch.FloatTensor(groundtruth_sequence)
-        # groundtruth_sequence[1:] = groundtruth_sequence[1:] - groundtruth_sequence[0:-1]  # get relative pose w.r.t. previois frame
-
-        # NOTE TODO from here on check if pose conversion works properly ! else substitute with my code
-
-        groundtruth_sequence[1:] = groundtruth_sequence[1:] - groundtruth_sequence[0] # get relative pose w.r.t. the first frame in the sequence
-        # print('Item before transform: ' + str(index) + '   ' + str(groundtruth_sequence))
-
-        # here we rotate the sequence relative to the first frame
-        for gt_seq in groundtruth_sequence[1:]:
-            location = torch.FloatTensor(groundtruth_rotation.dot(gt_seq[3:].numpy()))
-            gt_seq[3:] = location[:]
-            # print(location)
-
-        # get relative pose w.r.t. previous frame
-        groundtruth_sequence[2:] = groundtruth_sequence[2:] - groundtruth_sequence[1:-1]
-
-        # here we consider cases when rotation angles over Y axis go through PI -PI discontinuity
-        for gt_seq in groundtruth_sequence[1:]:
-            gt_seq[0] = normalize_angle_delta(gt_seq[0])
-
-        # print('Item after transform: ' + str(index) + '   ' + str(groundtruth_sequence))
+        seq_raw = np.hsplit(self.groundtruth_arr[index], np.array([6]))
+        seq_len = seq_raw[0].shape[0]
+        seq_abs = [ self._to_mat(seq_raw[0][i], seq_raw[1][i].reshape((3,3))) for i in range(seq_len) ]
+        seq_rel = [ self._inv(seq_abs[i]) * seq_abs[i+1] for i in range(seq_len-1) ]
+        seq_gt  = [ np.concatenate((self._to_euler(T[:3,:3]), np.asarray(T[:3,3])), axis=None) for T in seq_rel ]
 
         image_path_sequence = self.image_arr[index]
-        sequence_len = torch.tensor(self.seq_len_list[index])  #sequence_len = torch.tensor(len(image_path_sequence))
-        # TODO check if: torch.tensor(len(image_path_sequence)) == torch.tensor(self.seq_len_list[index])
-        # NOTE if yes: we dont need seq_len_list anymore !
-
+        sequence_len = torch.tensor(self.seq_len_list[index])
         image_sequence = []
         for img_path in image_path_sequence:
             img_as_img = Image.open(img_path).convert('RGB')
@@ -187,7 +193,7 @@ class ImageSequenceDataset(Dataset):
             image_sequence.append(img_as_tensor)
         image_sequence = torch.cat(image_sequence, 0)
         # NOTE 'groundtruth_sequence' must contain as many poses as 'image_sequence' has images. The first pose will be omited before loss computation.
-        return (sequence_len, image_sequence, groundtruth_sequence)
+        return (sequence_len, image_sequence, torch.FloatTensor(seq_gt))
 
     def __len__(self):
         return len(self.data_info.index)
