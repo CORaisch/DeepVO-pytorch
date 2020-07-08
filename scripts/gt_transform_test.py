@@ -3,7 +3,7 @@
 # NOTE this file shows that the transformation from abs matrix to rel euler poses is not working properly and should be reimplemented in original code
 
 # bultins
-import sys, os, glob, argparse
+import sys, os, glob, argparse, math
 sys.path.append('..')
 from pathlib import Path
 # project dependencies
@@ -77,6 +77,13 @@ def mat_to_string(mat):
     ret += str(mat[2,0]) + " " + str(mat[2,1]) + " " + str(mat[2,2]) + " " + str(mat[2,3]) + "\n"
     return ret
 
+def euler_to_mat(p):
+    '''compose and return transformation matrix T from 6 params p'''
+    t = np.matrix(p[3:]).reshape((3,1))
+    R = np.matrix(eulerAnglesToRotationMatrix(p[:3]))
+    T = np.matrix(np.eye(4, dtype=p.dtype)); T[:3,:3] = R; T[:3,3] = t;
+    return T
+
 if __name__ == '__main__':
     # set dataset to test on
     image_dir = os.path.join(args.dataset, 'images')
@@ -87,35 +94,44 @@ if __name__ == '__main__':
 
     # prepare dataset
     n_workers = 1
-    seq_len = 2
-    overlap = 1
+    seq_len = 6
+    overlap = seq_len - 1
     print('seq_len = {},  overlap = {}'.format(seq_len, overlap))
 
     # loop over sequences
     for seq in args.sequences:
+        n_poses = len(glob.glob(os.path.join(image_dir, seq, '*.png')))
+        print('exp. #sub-sequences = {}, exp. #batches = {}'.format(n_poses-overlap, math.ceil((n_poses-overlap)/args.batch_size)))
         # create ds to iterate
         df = get_data_info(image_dir, pose_dir, folder_list=[seq], seq_len_range=[seq_len, seq_len], overlap=overlap, sample_times=1, shuffle=False, sort=False)
         dataset = PoseSequenceDataset(df)
-        dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False, num_workers=n_workers)
+        dataloader = DataLoader(dataset, batch_size=args.batch_size, drop_last=False, shuffle=False, num_workers=n_workers)
 
         # loop over sequence
         trajectory = [ np.matrix(np.eye(4, dtype=np.float)) ]
         n_batch = len(dataloader)
         for i, batch in enumerate(dataloader):
+            # NOTE batch: tensor of rank Bx(S-1)x6
             print('{} / {}'.format(i, n_batch), end='\r', flush=True)
-            # NOTE batch: tensor of rank BSx5x6 (BS x SEQ_LEN-1 x 6 dof)
-            for pred_seq in batch:
-                for pred in pred_seq:
-                    # compose T
-                    p = pred.numpy()
-                    t = np.matrix(p[3:]).reshape((3,1))
-                    R = np.matrix(eulerAnglesToRotationMatrix(p[:3]))
-                    T = np.matrix(np.eye(4, dtype=p.dtype)); T[:3,:3] = R; T[:3,3] = t;
+            # integrate all poses of first predicted sequence
+            if i==0:
+                for pose in batch[0]:
+                    # get relative pose
+                    T = euler_to_mat(pose.numpy())
                     # integrate abs pose
                     trajectory.append(trajectory[-1]*T)
+                batch = batch[1:] # remove first element in batch
+
+            # for all further predictions only integrate the last pose, since overlap=seq_len-1
+            for pred_seq in batch:
+                pose = pred_seq[-1]
+                # get relative pose
+                T = euler_to_mat(pose.numpy())
+                # integrate abs pose
+                trajectory.append(trajectory[-1]*T)
 
         print('len(trajectory):', len(trajectory))
-        print('expect len:', len(glob.glob(os.path.join(image_dir, seq, '*.png'))))
+        print('expect len:', n_poses)
 
         # save trajectory in KITTI format
         with open(os.path.join(args.out, 'out_{}.txt'.format(seq)), 'w') as f:
