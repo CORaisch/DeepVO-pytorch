@@ -102,6 +102,7 @@ if __name__ == '__main__':
     for seq in args.sequences:
         n_poses = len(glob.glob(os.path.join(image_dir, seq, '*.png')))
         print('exp. #sub-sequences = {}, exp. #batches = {}'.format(n_poses-overlap, math.ceil((n_poses-overlap)/args.batch_size)))
+
         # create ds to iterate
         df = get_data_info(image_dir, pose_dir, folder_list=[seq], seq_len_range=[seq_len, seq_len], overlap=overlap, sample_times=1, shuffle=False, sort=False)
         dataset = PoseSequenceDataset(df)
@@ -110,6 +111,7 @@ if __name__ == '__main__':
         # loop over sequence
         trajectory = [ np.matrix(np.eye(4, dtype=np.float)) ]
         n_batch = len(dataloader)
+
         for i, batch in enumerate(dataloader):
             # NOTE batch: tensor of rank Bx(S-1)x6
             print('{} / {}'.format(i, n_batch), end='\r', flush=True)
@@ -131,7 +133,7 @@ if __name__ == '__main__':
                 trajectory.append(trajectory[-1]*T)
 
         print('len(trajectory):', len(trajectory))
-        print('expect len:', n_poses)
+        print('exp. len:', n_poses)
 
         # save trajectory in KITTI format
         with open(os.path.join(args.out, 'out_{}.txt'.format(seq)), 'w') as f:
