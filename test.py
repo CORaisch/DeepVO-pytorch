@@ -2,6 +2,7 @@
 
 # builtins
 import glob, os, time, argparse
+from math import ceil
 from pathlib import Path
 from PIL import Image
 # project dependencies
@@ -13,6 +14,21 @@ from data_helper import get_data_info, ImageSequenceDataset
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
+
+def mat_to_string(mat):
+    '''converts a pose matrix to string in KITTI format'''
+    # NOTE expecting 3x4 or 4x4 pose matrix (SE(3))
+    ret  = str(mat[0,0]) + " " + str(mat[0,1]) + " " + str(mat[0,2]) + " " + str(mat[0,3]) + " "
+    ret += str(mat[1,0]) + " " + str(mat[1,1]) + " " + str(mat[1,2]) + " " + str(mat[1,3]) + " "
+    ret += str(mat[2,0]) + " " + str(mat[2,1]) + " " + str(mat[2,2]) + " " + str(mat[2,3]) + "\n"
+    return ret
+
+def euler_to_mat(p):
+    '''compose and return transformation matrix T from 6 params p'''
+    t = np.matrix(p[3:]).reshape((3,1))
+    R = np.matrix(eulerAnglesToRotationMatrix(p[:3]))
+    T = np.matrix(np.eye(4, dtype=p.dtype)); T[:3,:3] = R; T[:3,3] = t;
+    return T
 
 # parse passed arguments
 argparser = argparse.ArgumentParser(description="DeepVO Testing")
@@ -51,74 +67,62 @@ if __name__ == '__main__':
 
     # test loop
     for test_seq in args.sequences:
+        # measure time
+        st_t = time.time()
+
+        # print expected output values
+        n_poses = len(glob.glob(os.path.join(image_dir, test_seq, '*.png')))
+        print('exp. #sub-sequences = {}, exp. #batches = {}'.format(n_poses-overlap, ceil((n_poses-overlap)/args.batch_size)))
+
         # make dataloader
         df = get_data_info(image_dir, pose_dir, folder_list=[test_seq], seq_len_range=[seq_len, seq_len], overlap=overlap, sample_times=1, shuffle=False, sort=False)
         df = df.loc[df.seq_len == seq_len]  # drop last
         dataset = ImageSequenceDataset(df, par.resize_mode, (par.img_w, par.img_h), par.img_means, par.img_stds, par.minus_point_5)
-        dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False, num_workers=n_workers)
+        dataloader = DataLoader(dataset, batch_size=args.batch_size, drop_last=False, shuffle=False, num_workers=n_workers)
 
-        # load gt poses
-        gt_pose = np.load(os.path.join(pose_dir, '{}.npy'.format(test_seq))) # (n_images, 6)
 
-        # Predict
+        # loop over batched sub-sequences
         M_deepvo.eval()
-        has_predict = False
-        answer = [[0.0]*6, ]
-        st_t = time.time()
+        trajectory = [ np.matrix(np.eye(4, dtype=np.float)) ]
         n_batch = len(dataloader)
 
         for i, batch in enumerate(dataloader):
             print('{} / {}'.format(i, n_batch), end='\r', flush=True)
+
+            # predict batched sequences of poses
             _, x, y = batch
             if use_cuda:
                 x = x.cuda()
                 y = y.cuda()
-            batch_predict_pose = M_deepvo.forward(x)
+            pred_batch = M_deepvo.forward(x)
+            # NOTE batch and pred_batch are tensors of rank Bx(S-1)x6
 
-            batch_predict_pose = batch_predict_pose.data.cpu().numpy()
+            # integrate all poses of first predicted sequence
+            pred_batch = pred_batch.data.cpu().numpy()
             if i == 0:
-                for pose in batch_predict_pose[0]:
-                    # use all predicted pose in the first prediction
-                    for i in range(len(pose)):
-                        # Convert predicted relative pose to absolute pose by adding last pose
-                        pose[i] += answer[-1][i]
-                    answer.append(pose.tolist())
-                batch_predict_pose = batch_predict_pose[1:]
+                for pose in pred_batch[0]:
+                    # get relative pose
+                    T = euler_to_mat(pose)
+                    # integrate abs pose
+                    trajectory.append(trajectory[-1]*T)
+                pred_batch = pred_batch[1:] # remove first element in batch
 
-            # Transform from relative to absolute
-            for predict_pose_seq in batch_predict_pose:
-                # predict_pose_seq[1:] = predict_pose_seq[1:] + predict_pose_seq[0:-1]
-                ang = eulerAnglesToRotationMatrix([0, answer[-1][0], 0]) #eulerAnglesToRotationMatrix([answer[-1][1], answer[-1][0], answer[-1][2]])
-                location = ang.dot(predict_pose_seq[-1][3:])
-                predict_pose_seq[-1][3:] = location[:]
+            # for all further predictions only integrate the last pose, since overlap=seq_len-1
+            for pred_seq in pred_batch:
+                pose = pred_seq[-1]
+                # get relative pose
+                T = euler_to_mat(pose)
+                # integrate abs pose
+                trajectory.append(trajectory[-1]*T)
 
-                # use only last predicted pose in the following prediction
-                last_pose = predict_pose_seq[-1]
-                for i in range(len(last_pose)):
-                    last_pose[i] += answer[-1][i]
-                # normalize angle to -Pi...Pi over y axis
-                last_pose[0] = (last_pose[0] + np.pi) % (2 * np.pi) - np.pi
-                answer.append(last_pose.tolist())
+        # print status
+        delta_t = time.localtime(time.time() - st_t)
+        print('len(trajectory):', len(trajectory))
+        print('exp. len:', n_poses)
+        print('delta t: {}:{} min'.format(delta_t.tm_min, delta_t.tm_sec))
 
-        print('len(answer):', len(answer))
-        print('expect len:', len(glob.glob(os.path.join(image_dir, test_seq, '*.png'))))
-        print('Predict use {} sec'.format(time.time() - st_t))
-
-        # save answer
+        # save trajectory in KITTI format
         with open(os.path.join(args.out, 'out_{}.txt'.format(test_seq)), 'w') as f:
-            for pose in answer:
-                if type(pose) == list:
-                    f.write(', '.join([str(p) for p in pose]))
-                else:
-                    f.write(str(pose))
-                f.write('\n')
-
-        # calculate loss
-        loss = 0
-        for t in range(len(gt_pose)):
-            angle_loss = np.sum((answer[t][:3] - gt_pose[t,:3]) ** 2)
-            translation_loss = np.sum((answer[t][3:] - gt_pose[t,3:6]) ** 2)
-            loss = (100 * angle_loss + translation_loss)
-        loss /= len(gt_pose)
-        print('Loss = ', loss)
-        print('='*50)
+            # for pose in trajectory:
+            for pose in trajectory:
+                f.write(mat_to_string(pose))
