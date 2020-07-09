@@ -1,21 +1,20 @@
 #!/home/claudio/Apps/anaconda3/envs/PyTorch/bin/python
 
-# NOTE this file shows that the transformation from abs matrix to rel euler poses is not working properly and should be reimplemented in original code
-
 # bultins
-import sys, os, glob, argparse, math
+import sys, os, glob, argparse
 sys.path.append('..')
+from math import ceil
 from pathlib import Path
 # project dependencies
-from data_helper import get_data_info, ImageSequenceDataset
-from utils import eulerAnglesToRotationMatrix, normalize_angle_delta, R_to_angle
+from data_helper import get_data_info
+from utils import eulerAnglesToRotationMatrix
 # external dependencies
 import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader
 
 class PoseSequenceDataset(Dataset):
-    '''loading gt poses same as with data_helper.ImageSequenceDataset but omitting the image loading'''
+    '''loading gt poses same as done in data_helper, but omit the image loading'''
 
     def __init__(self, info_dataframe):
         self.data_info = info_dataframe
