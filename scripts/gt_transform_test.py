@@ -100,7 +100,7 @@ if __name__ == '__main__':
     # loop over sequences
     for seq in args.sequences:
         n_poses = len(glob.glob(os.path.join(image_dir, seq, '*.png')))
-        print('exp. #sub-sequences = {}, exp. #batches = {}'.format(n_poses-overlap, math.ceil((n_poses-overlap)/args.batch_size)))
+        print('exp. #sub-sequences = {}, exp. #batches = {}'.format(n_poses-overlap, ceil((n_poses-overlap)/args.batch_size)))
 
         # create ds to iterate
         df = get_data_info(image_dir, pose_dir, folder_list=[seq], seq_len_range=[seq_len, seq_len], overlap=overlap, sample_times=1, shuffle=False, sort=False)
