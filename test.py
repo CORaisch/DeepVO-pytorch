@@ -81,7 +81,6 @@ if __name__ == '__main__':
         dataset = ImageSequenceDataset(df, par.resize_mode, (par.img_w, par.img_h), par.img_means, par.img_stds, par.minus_point_5)
         dataloader = DataLoader(dataset, batch_size=args.batch_size, drop_last=False, shuffle=False, num_workers=n_workers)
 
-
         # loop over batched sub-sequences
         M_deepvo.eval()
         trajectory = [ np.matrix(np.eye(4, dtype=np.float)) ]
@@ -104,7 +103,7 @@ if __name__ == '__main__':
                 for pose in pred_batch[0]:
                     # get relative pose
                     if args.only_yaw:
-                        pose[1:3] = [0,0]
+                        pose[0] = 0; pose[2] = 0;
                     T = euler_to_mat(pose)
                     # integrate abs pose
                     trajectory.append(trajectory[-1]*T)
@@ -115,7 +114,7 @@ if __name__ == '__main__':
                 pose = pred_seq[-1]
                 # get relative pose
                 if args.only_yaw:
-                    pose[1:3] = [0,0]
+                    pose[0] = 0; pose[2] = 0;
                 T = euler_to_mat(pose)
                 # integrate abs pose
                 trajectory.append(trajectory[-1]*T)
