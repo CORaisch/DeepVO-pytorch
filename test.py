@@ -37,6 +37,7 @@ argparser.add_argument('out', type=str, help="path where estimates will be saved
 argparser.add_argument('dataset', type=str, help="dataset base directory")
 argparser.add_argument('sequences', type=str, nargs='+', help="video indices to test on")
 argparser.add_argument('--batch_size', '-bs', type=int, default=8, help="batch size for testing (default: 8)")
+argparser.add_argument('--only_yaw', action='store_true', help="use only yaw prediction, rest is set to zero.")
 args = argparser.parse_args()
 
 if __name__ == '__main__':
@@ -102,6 +103,8 @@ if __name__ == '__main__':
             if i == 0:
                 for pose in pred_batch[0]:
                     # get relative pose
+                    if args.only_yaw:
+                        pose[1:3] = [0,0]
                     T = euler_to_mat(pose)
                     # integrate abs pose
                     trajectory.append(trajectory[-1]*T)
@@ -111,6 +114,8 @@ if __name__ == '__main__':
             for pred_seq in pred_batch:
                 pose = pred_seq[-1]
                 # get relative pose
+                if args.only_yaw:
+                    pose[1:3] = [0,0]
                 T = euler_to_mat(pose)
                 # integrate abs pose
                 trajectory.append(trajectory[-1]*T)
