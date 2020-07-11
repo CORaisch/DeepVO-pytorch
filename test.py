@@ -106,7 +106,7 @@ if __name__ == '__main__':
                         pose[0] = 0; pose[2] = 0;
                     T = euler_to_mat(pose)
                     # integrate abs pose
-                    trajectory.append(trajectory[-1]*T)
+                    trajectory.append(T)
                 pred_batch = pred_batch[1:] # remove first element in batch
 
             # for all further predictions only integrate the last pose, since overlap=seq_len-1
@@ -117,7 +117,7 @@ if __name__ == '__main__':
                     pose[0] = 0; pose[2] = 0;
                 T = euler_to_mat(pose)
                 # integrate abs pose
-                trajectory.append(trajectory[-1]*T)
+                trajectory.append(trajectory[-(seq_len-1)]*T)
 
         # print status
         delta_t = time.localtime(time.time() - st_t)
