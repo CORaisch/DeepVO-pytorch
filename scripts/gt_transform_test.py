@@ -54,7 +54,7 @@ class PoseSequenceDataset(Dataset):
         seq_raw = np.hsplit(self.groundtruth_arr[index], np.array([6]))
         seq_len = seq_raw[0].shape[0]
         seq_abs = [ self._to_mat(seq_raw[0][i], seq_raw[1][i].reshape((3,3))) for i in range(seq_len) ]
-        seq_rel = [ self._inv(seq_abs[i]) * seq_abs[i+1] for i in range(seq_len-1) ]
+        seq_rel = [ self._inv(seq_abs[0]) * seq_abs[i+1] for i in range(seq_len-1) ]
         seq_gt  = [ np.concatenate((self._to_euler(T[:3,:3]), np.asarray(T[:3,3])), axis=None) for T in seq_rel ]
         return torch.FloatTensor(seq_gt)
 
@@ -120,7 +120,7 @@ if __name__ == '__main__':
                     # get relative pose
                     T = euler_to_mat(pose.numpy())
                     # integrate abs pose
-                    trajectory.append(trajectory[-1]*T)
+                    trajectory.append(T)
                 batch = batch[1:] # remove first element in batch
 
             # for all further predictions only integrate the last pose, since overlap=seq_len-1
@@ -129,7 +129,7 @@ if __name__ == '__main__':
                 # get relative pose
                 T = euler_to_mat(pose.numpy())
                 # integrate abs pose
-                trajectory.append(trajectory[-1]*T)
+                trajectory.append(trajectory[-(seq_len-1)]*T)
 
         print('len(trajectory):', len(trajectory))
         print('exp. len:', n_poses)
