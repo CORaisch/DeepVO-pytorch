@@ -37,7 +37,6 @@ argparser.add_argument('out', type=str, help="path where estimates will be saved
 argparser.add_argument('dataset', type=str, help="dataset base directory")
 argparser.add_argument('sequences', type=str, nargs='+', help="video indices to test on")
 argparser.add_argument('--batch_size', '-bs', type=int, default=8, help="batch size for testing (default: 8)")
-argparser.add_argument('--only_yaw', action='store_true', help="use only yaw prediction, rest is set to zero.")
 args = argparser.parse_args()
 
 if __name__ == '__main__':
@@ -101,11 +100,9 @@ if __name__ == '__main__':
             pred_batch = pred_batch.data.cpu().numpy()
             for pred_seq in pred_batch:
                 T0 = trajectory[-1]
-                for pose in pred_seq:
-                    # pose = pred_seq[-1]
+                for p in pred_seq:
                     # get relative pose
-                    if args.only_yaw:
-                        pose[0] = 0; pose[2] = 0;
+                    pose = np.array([0.0, p[0], 0.0, p[1], 0.0, p[2]], dtype=p.dtype) # NOTE only x, z and yaw are predicted
                     T = euler_to_mat(pose)
                     # integrate abs pose
                     trajectory.append(T0*T)
