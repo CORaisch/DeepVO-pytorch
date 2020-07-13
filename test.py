@@ -63,7 +63,7 @@ if __name__ == '__main__':
     # prepare dataset
     n_workers = 1
     seq_len = int((par.seq_len[0]+par.seq_len[1])/2)
-    overlap = seq_len - 1
+    overlap = 1
     print('seq_len = {},  overlap = {}'.format(seq_len, overlap))
 
     # test loop
@@ -97,27 +97,18 @@ if __name__ == '__main__':
             pred_batch = M_deepvo.forward(x)
             # NOTE batch and pred_batch are tensors of rank Bx(S-1)x6
 
-            # integrate all poses of first predicted sequence
+            # integrate poses
             pred_batch = pred_batch.data.cpu().numpy()
-            if i == 0:
-                for pose in pred_batch[0]:
+            for pred_seq in pred_batch:
+                T0 = trajectory[-1]
+                for pose in pred_seq:
+                    # pose = pred_seq[-1]
                     # get relative pose
                     if args.only_yaw:
                         pose[0] = 0; pose[2] = 0;
                     T = euler_to_mat(pose)
                     # integrate abs pose
-                    trajectory.append(T)
-                pred_batch = pred_batch[1:] # remove first element in batch
-
-            # for all further predictions only integrate the last pose, since overlap=seq_len-1
-            for pred_seq in pred_batch:
-                pose = pred_seq[-1]
-                # get relative pose
-                if args.only_yaw:
-                    pose[0] = 0; pose[2] = 0;
-                T = euler_to_mat(pose)
-                # integrate abs pose
-                trajectory.append(trajectory[-(seq_len-1)]*T)
+                    trajectory.append(T0*T)
 
         # print status
         delta_t = time.localtime(time.time() - st_t)
