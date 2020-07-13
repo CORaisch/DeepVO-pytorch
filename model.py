@@ -49,7 +49,7 @@ class DeepVO(nn.Module):
                     dropout=par.rnn_dropout_between,
                     batch_first=True)
         self.rnn_drop_out = nn.Dropout(par.rnn_dropout_out)
-        self.linear = nn.Linear(in_features=par.rnn_hidden_size, out_features=6)
+        self.linear = nn.Linear(in_features=par.rnn_hidden_size, out_features=3)
 
         # Initilization
         for m in self.modules():
@@ -119,8 +119,11 @@ class DeepVO(nn.Module):
     def get_loss(self, x, y):
         predicted = self.forward(x)
         # Weighted MSE Loss
-        angle_loss = torch.nn.functional.mse_loss(predicted[:,:,:3], y[:,:,:3])
-        translation_loss = torch.nn.functional.mse_loss(predicted[:,:,3:], y[:,:,3:])
+        angle_loss = torch.nn.functional.mse_loss(predicted[:,:,0], y[:,:,1])
+        gt_trans = torch.zeros([y.shape[0],y.shape[1],2], dtype=y.dtype)
+        gt_trans[:,:,0] = y[:,:,3]; gt_trans[:,:,1] = y[:,:,5];
+        import pdb; pdb.set_trace()
+        translation_loss = torch.nn.functional.mse_loss(predicted[:,:,1:], gt_trans)
         loss = (100 * angle_loss + translation_loss)
         return loss
 
