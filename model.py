@@ -122,7 +122,6 @@ class DeepVO(nn.Module):
         angle_loss = torch.nn.functional.mse_loss(predicted[:,:,0], y[:,:,1])
         gt_trans = torch.zeros([y.shape[0],y.shape[1],2], dtype=y.dtype)
         gt_trans[:,:,0] = y[:,:,3]; gt_trans[:,:,1] = y[:,:,5];
-        import pdb; pdb.set_trace()
         translation_loss = torch.nn.functional.mse_loss(predicted[:,:,1:], gt_trans)
         loss = (100 * angle_loss + translation_loss)
         return loss
