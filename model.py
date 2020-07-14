@@ -22,6 +22,13 @@ def conv(batchNorm, in_planes, out_planes, kernel_size=3, stride=1, dropout=0):
             nn.Dropout(dropout)#, inplace=True)
         )
 
+def linear_relu(n_in, n_out):
+    return nn.Sequential(
+        nn.Linear(in_features=n_in, out_features=n_out),
+        nn.ReLU()
+    )
+
+
 class DeepVO(nn.Module):
     def __init__(self, imsize1, imsize2, batchNorm=True):
         super(DeepVO,self).__init__()
@@ -49,7 +56,8 @@ class DeepVO(nn.Module):
                     dropout=par.rnn_dropout_between,
                     batch_first=True)
         self.rnn_drop_out = nn.Dropout(par.rnn_dropout_out)
-        self.linear = nn.Linear(in_features=par.rnn_hidden_size, out_features=6)
+        self.out_layer1 = linear_relu(par.rnn_hidden_size, 128)
+        self.out_layer2 = nn.Linear(in_features=128, out_features=6)
 
         # Initilization
         for m in self.modules():
@@ -94,11 +102,11 @@ class DeepVO(nn.Module):
         x = self.encode_image(x)
         x = x.view(batch_size, seq_len, -1)
 
-
         # RNN
         out, hc = self.rnn(x)
         out = self.rnn_drop_out(out)
-        out = self.linear(out)
+        out = self.out_layer1(out)
+        out = self.out_layer2(out)
         return out
 
 
