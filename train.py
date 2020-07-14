@@ -131,6 +131,11 @@ if args.pretrained_flownet and not args.resume:
     # Use conv-layer-weights of FlowNet for DeepVO conv-layers
     model_dict = M_deepvo.state_dict()
     update_dict = {k: v for k, v in pretrained_w['state_dict'].items() if k in model_dict}
+    # resize weight tensor of first convolution layer to make space for difference image
+    _conv1weight = torch.zeros([64,7,7,7], dtype=update_dict['conv1.0.weight'].dtype, device=update_dict['conv1.0.weight'].device.type)
+    torch.nn.init.kaiming_normal_(_conv1weight) # initialize weights for difference image kernels
+    _conv1weight[:,:6,:,:] = update_dict['conv1.0.weight']
+    update_dict['conv1.0.weight'] = _conv1weight
     model_dict.update(update_dict)
     M_deepvo.load_state_dict(model_dict)
 elif not args.pretrained_flownet and not args.resume:

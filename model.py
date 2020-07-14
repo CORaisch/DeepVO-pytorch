@@ -35,7 +35,7 @@ class DeepVO(nn.Module):
         # CNN
         self.batchNorm = batchNorm
         self.clip = par.clip
-        self.conv1   = conv(self.batchNorm,   6,   64, kernel_size=7, stride=2, dropout=par.conv_dropout[0])
+        self.conv1   = conv(self.batchNorm,   7,   64, kernel_size=7, stride=2, dropout=par.conv_dropout[0])
         self.conv2   = conv(self.batchNorm,  64,  128, kernel_size=5, stride=2, dropout=par.conv_dropout[1])
         self.conv3   = conv(self.batchNorm, 128,  256, kernel_size=5, stride=2, dropout=par.conv_dropout[2])
         self.conv3_1 = conv(self.batchNorm, 256,  256, kernel_size=3, stride=1, dropout=par.conv_dropout[3])
@@ -45,7 +45,7 @@ class DeepVO(nn.Module):
         self.conv5_1 = conv(self.batchNorm, 512,  512, kernel_size=3, stride=1, dropout=par.conv_dropout[7])
         self.conv6   = conv(self.batchNorm, 512, 1024, kernel_size=3, stride=2, dropout=par.conv_dropout[8])
         # Comput the shape based on diff image size
-        __tmp = Variable(torch.zeros(1, 6, imsize1, imsize2))
+        __tmp = Variable(torch.zeros(1, 7, imsize1, imsize2))
         __tmp = self.encode_image(__tmp)
 
         # RNN
@@ -94,16 +94,24 @@ class DeepVO(nn.Module):
         # x  : (batch, seq_len, channel, width, height)
         # out: (batch, seq_len, 6)
         # stack_image
-        x = torch.cat(( x[:, :-1], x[:, 1:]), dim=2)
-        batch_size = x.size(0)
-        seq_len = x.size(1)
+        inp = torch.zeros([x.size(0),x.size(1)-1,2*x.size(2)+1,x.size(3),x.size(4)], dtype=x.dtype, device=x.device.type)
+        inp[:,:,:6,:,:] = torch.cat(( x[:, :-1], x[:, 1:]), dim=2) # stack images into first 6 channel dims
+
+        # compute diffrence of both G images in each input pair considering that images are in ~[-1,1] interval
+        _range = torch.max(inp) - torch.min(inp)
+        _diff = (inp[:,:,4,:,:] - torch.min(inp)) - (inp[:,:,1,:,:] - torch.min(inp))
+        _diff = (_diff / _range) + torch.min(inp)
+        inp[:,:,6,:,:] = _diff # stack difference G image into 7th channel dim
+
+        batch_size = inp.size(0)
+        seq_len = inp.size(1)
         # CNN
-        x = x.view(batch_size*seq_len, x.size(2), x.size(3), x.size(4))
-        x = self.encode_image(x)
-        x = x.view(batch_size, seq_len, -1)
+        inp = inp.view(batch_size*seq_len, inp.size(2), inp.size(3), inp.size(4))
+        inp = self.encode_image(inp)
+        inp = inp.view(batch_size, seq_len, -1)
 
         # RNN
-        out, hc = self.rnn(x)
+        out, hc = self.rnn(inp)
         out = self.rnn_drop_out(out)
         out = self.out_layer1(out)
         out = self.out_layer2(out)
