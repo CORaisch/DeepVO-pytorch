@@ -56,8 +56,7 @@ class DeepVO(nn.Module):
                     dropout=par.rnn_dropout_between,
                     batch_first=True)
         self.rnn_drop_out = nn.Dropout(par.rnn_dropout_out)
-        self.out_layer1 = linear_relu(par.rnn_hidden_size, 128)
-        self.out_layer2 = nn.Linear(in_features=128, out_features=6)
+        self.out_layer = nn.Linear(in_features=par.rnn_hidden_size, out_features=6)
 
         # Initilization
         for m in self.modules():
@@ -113,8 +112,7 @@ class DeepVO(nn.Module):
         # RNN
         out, hc = self.rnn(inp)
         out = self.rnn_drop_out(out)
-        out = self.out_layer1(out)
-        out = self.out_layer2(out)
+        out = self.out_layer(out)
         return out
 
 
