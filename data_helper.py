@@ -171,7 +171,10 @@ class ImageSequenceDataset(Dataset):
         seq_raw = np.hsplit(self.groundtruth_arr[index], np.array([6]))
         seq_len = seq_raw[0].shape[0]
         seq_abs = [ self._to_mat(seq_raw[0][i], seq_raw[1][i].reshape((3,3))) for i in range(seq_len) ]
-        seq_rel = [ self._inv(seq_abs[0]) * seq_abs[i+1] for i in range(seq_len-1) ]
+
+        # seq_rel = [ self._inv(seq_abs[i+1]) * seq_abs[i+2] for i in range(seq_len-3) ] # label variant 1 (relative)
+        seq_rel = [ self._inv(seq_abs[1]) * seq_abs[i+2] for i in range(seq_len-3) ] # label variant 1 (absolute)
+
         seq_gt  = [ np.concatenate((self._to_euler(T[:3,:3]), np.asarray(T[:3,3])), axis=None) for T in seq_rel ]
 
         image_path_sequence = self.image_arr[index]

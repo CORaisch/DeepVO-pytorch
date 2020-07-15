@@ -35,7 +35,7 @@ class DeepVO(nn.Module):
         # CNN
         self.batchNorm = batchNorm
         self.clip = par.clip
-        self.conv1   = conv(self.batchNorm,   6,   64, kernel_size=7, stride=2, dropout=par.conv_dropout[0])
+        self.conv1   = conv(self.batchNorm,  12,   64, kernel_size=7, stride=2, dropout=par.conv_dropout[0])
         self.conv2   = conv(self.batchNorm,  64,  128, kernel_size=5, stride=2, dropout=par.conv_dropout[1])
         self.conv3   = conv(self.batchNorm, 128,  256, kernel_size=5, stride=2, dropout=par.conv_dropout[2])
         self.conv3_1 = conv(self.batchNorm, 256,  256, kernel_size=3, stride=1, dropout=par.conv_dropout[3])
@@ -45,7 +45,7 @@ class DeepVO(nn.Module):
         self.conv5_1 = conv(self.batchNorm, 512,  512, kernel_size=3, stride=1, dropout=par.conv_dropout[7])
         self.conv6   = conv(self.batchNorm, 512, 1024, kernel_size=3, stride=2, dropout=par.conv_dropout[8])
         # Comput the shape based on diff image size
-        __tmp = Variable(torch.zeros(1, 6, imsize1, imsize2))
+        __tmp = Variable(torch.zeros(1, 12, imsize1, imsize2))
         __tmp = self.encode_image(__tmp)
 
         # RNN
@@ -91,10 +91,11 @@ class DeepVO(nn.Module):
 
 
     def forward(self, x):
+
         # x  : (batch, seq_len, channel, width, height)
-        # out: (batch, seq_len, 6)
-        # stack_image
-        x = torch.cat(( x[:, :-1], x[:, 1:]), dim=2)
+        # out: (batch, seq_len-3, 6)
+        # stack images
+        x = torch.cat((x[:,:-3], x[:,1:-2], x[:,2:-1], x[:,3:]), dim=2) # build stacks of 4 input images
         batch_size = x.size(0)
         seq_len = x.size(1)
         # CNN

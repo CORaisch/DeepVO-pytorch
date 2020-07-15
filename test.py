@@ -63,7 +63,7 @@ if __name__ == '__main__':
     # prepare dataset
     n_workers = 1
     seq_len = int((par.seq_len[0]+par.seq_len[1])/2)
-    overlap = 1
+    overlap = 3
     print('seq_len = {},  overlap = {}'.format(seq_len, overlap))
 
     # test loop
@@ -83,7 +83,7 @@ if __name__ == '__main__':
 
         # loop over batched sub-sequences
         M_deepvo.eval()
-        trajectory = [ np.matrix(np.eye(4, dtype=np.float)) ]
+        trajectory = [ np.matrix(np.eye(4, dtype=np.float)), np.matrix(np.eye(4, dtype=np.float)) ] # NOTE the first pose estimate is T1->T2, so T0->T1 is never computed => substitute T0->T1 with Identity
         n_batch = len(dataloader)
 
         for i, batch in enumerate(dataloader):
