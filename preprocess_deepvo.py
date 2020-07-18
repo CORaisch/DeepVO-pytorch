@@ -120,6 +120,7 @@ if __name__ == '__main__':
     argparser.add_argument('--kitti', '-kitti', action='store_true', help="set if preprocessing KITTI data, additional images will be removed for KITTI")
     argparser.add_argument('--grayscale', '-gray', action='store_true', help="set if mean and std image should be computed on grayscale images")
     argparser.add_argument('--minus_point_5', '-mp5', action='store_true', help="set if pixel range should be shifted to [-0.5,0.5] before preprocessing")
+    argparser.add_argument('--no_image_processing', '-no_img', action='store_true', help="if set only poses will be processed, images are ignored")
     args = argparser.parse_args()
 
     # set dataset dir
@@ -138,7 +139,8 @@ if __name__ == '__main__':
     create_pose_data(sequences, pose_dir)
 
     # Calculate RGB means of images in training sequences
-    image_path_list = []
-    for folder in sequences:
-        image_path_list += glob.glob(os.path.join(image_dir, folder, '*.png'))
-    calculate_rgb_mean_std(image_path_list, minus_point_5=args.minus_point_5, grayscale=args.grayscale)
+    if not args.no_image_processing:
+        image_path_list = []
+        for folder in sequences:
+            image_path_list += glob.glob(os.path.join(image_dir, folder, '*.png'))
+        calculate_rgb_mean_std(image_path_list, minus_point_5=args.minus_point_5, grayscale=args.grayscale)
