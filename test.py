@@ -116,6 +116,10 @@ if __name__ == '__main__':
         print('exp. len:', n_poses)
         print('delta t: {}:{} min'.format(delta_t.tm_min, delta_t.tm_sec))
 
+        # if final subsequence couldn't be fully filled it will be discarded, hence the final trajectory will be shorter than the original, therefore increment identities for the missing ones at the end
+        for i in range(n_poses-len(trajectory)):
+            trajectory.append(trajectory[-1]*np.matrix(np.eye(4, dtype=np.float)))
+
         # save trajectory in KITTI format
         with open(os.path.join(args.out, 'out_{}.txt'.format(test_seq)), 'w') as f:
             # for pose in trajectory:
