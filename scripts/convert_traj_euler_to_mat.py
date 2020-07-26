@@ -1,6 +1,7 @@
 #!/home/claudio/Apps/anaconda3/envs/PyTorch/bin/python
 
 import os, sys, argparse
+from pathlib import Path
 sys.path.append('..')
 import numpy as np
 from utils import eulerAnglesToRotationMatrix
@@ -31,6 +32,8 @@ args = argparser.parse_args()
 # plot estimates against gt
 for seq in args.sequences:
     print('convert sequence {}...'.format(seq), flush=True, end='')
+
+    Path(args.out).mkdir(parents=True, exist_ok=True)
 
     est_path = os.path.join(args.base, 'out_{}.txt'.format(seq))
     out_path = os.path.join(args.out, 'out_{}.txt'.format(seq))
