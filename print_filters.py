@@ -66,8 +66,11 @@ if __name__ == '__main__':
         model.load_state_dict(torch.load(load_model_path, map_location={'cuda:0': 'cpu'}))
     print('load model from: ', load_model_path)
 
+    print(model)
+
     # load flownet weights
     if args.flownet:
+        flownet_model = DeepVO(args.img_h, args.img_w, args.no_bnorm)
         flownet_path = '/home/claudio/Projects/DeepVO-pytorch/pretrained/flownets_EPE1.951.pth.tar'
         print('load conv weights from pretrained FlowNet model ({})'.format(flownet_path))
         if use_cuda:
@@ -75,19 +78,44 @@ if __name__ == '__main__':
         else:
             pretrained_w = torch.load(flownet_path, map_location='cpu')
         # Use conv-layer-weights of FlowNet for DeepVO conv-layers
-        model_dict = model.state_dict()
+        model_dict = flownet_model.state_dict()
         update_dict = {k: v for k, v in pretrained_w['state_dict'].items() if k in model_dict}
         model_dict.update(update_dict)
-        model.load_state_dict(model_dict)
+        flownet_model.load_state_dict(model_dict)
 
-        # # compare initial weights with trained ones
-        # flownet_w = model.conv1[0].weight.data.numpy().copy()
-        # comp = np.allclose(trained_w, flownet_w, atol=1e-3)
-        # print(comp)
+        # compare initial weights with trained ones
+        model_w   = model.conv1[0].weight.data.numpy().copy()
+        flownet_w = flownet_model.conv1[0].weight.data.numpy().copy()
+        comp = np.allclose(model_w, flownet_w, atol=1e-2)
+        print('conv1:','diff lies in (1e-3,1e-2], with range min:',np.min(flownet_w),'max:',np.max(flownet_w))
 
-    print(model)
-    print(model.conv1[0].weight.data.shape)
+        model_w   = model.conv2[0].weight.data.numpy().copy()
+        flownet_w = flownet_model.conv2[0].weight.data.numpy().copy()
+        comp = np.allclose(model_w, flownet_w, atol=1e-1)
+        print('conv2:','diff lies in (1e-2,1e-1], with range min:',np.min(flownet_w),'max:',np.max(flownet_w))
 
-    name = 'flownet.png' if args.flownet else 'filters.png'
-    plot_filters_single_channel(model.conv1[0].weight.data, im_r=True, fname=name)
+        model_w   = model.conv3[0].weight.data.numpy().copy()
+        flownet_w = flownet_model.conv3[0].weight.data.numpy().copy()
+        comp = np.allclose(model_w, flownet_w, atol=1e-1)
+        print('conv3:','diff lies in (1e-2,1e-1], with range min:',np.min(flownet_w),'max:',np.max(flownet_w))
+
+        model_w   = model.conv3_1[0].weight.data.numpy().copy()
+        flownet_w = flownet_model.conv3_1[0].weight.data.numpy().copy()
+        comp = np.allclose(model_w, flownet_w, atol=1e-1)
+        print('conv3_1:','diff lies in (1e-2,1e-1], with range min:',np.min(flownet_w),'max:',np.max(flownet_w))
+
+        model_w   = model.conv4[0].weight.data.numpy().copy()
+        flownet_w = flownet_model.conv4[0].weight.data.numpy().copy()
+        comp = np.allclose(model_w, flownet_w, atol=1e-1)
+        print('conv4:','diff lies in (1e-2,1e-1], with range min:',np.min(flownet_w),'max:',np.max(flownet_w))
+
+        model_w   = model.conv6[0].weight.data.numpy().copy()
+        flownet_w = flownet_model.conv6[0].weight.data.numpy().copy()
+        comp = np.allclose(model_w, flownet_w, atol=1e-1)
+        print('conv6:','diff lies in (1e-2,1e-1], with range min:',np.min(flownet_w),'max:',np.max(flownet_w))
+
+    # print(model.conv1[0].weight.data.shape)
+
+    # name = 'flownet.png' if args.flownet else 'filters.png'
+    # plot_filters_single_channel(model.conv1[0].weight.data, im_r=True, fname=name)
 
