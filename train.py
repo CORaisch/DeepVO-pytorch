@@ -88,11 +88,11 @@ else: # case: create training and validtion dataset from given list of sequences
 
 print('Create Dataset Loaders')
 train_sampler = SortedRandomBatchSampler(train_df, args.batch_size, drop_last=True)
-train_dataset = ImageSequenceDataset(train_df, par.resize_mode, (par.img_h, par.img_w), par.img_means, par.img_stds, par.minus_point_5) # NOTE why swap h and w?
+train_dataset = ImageSequenceDataset(train_df, par.resize_mode, (par.img_w, par.img_h), par.img_means, par.img_stds, par.minus_point_5) # NOTE why swap h and w?
 train_dl = DataLoader(train_dataset, batch_sampler=train_sampler, num_workers=args.n_processors, pin_memory=par.pin_mem)
 
 valid_sampler = SortedRandomBatchSampler(valid_df, args.batch_size, drop_last=True)
-valid_dataset = ImageSequenceDataset(valid_df, par.resize_mode, (par.img_h, par.img_w), par.img_means, par.img_stds, par.minus_point_5) # NOTE why swap h and w?
+valid_dataset = ImageSequenceDataset(valid_df, par.resize_mode, (par.img_w, par.img_h), par.img_means, par.img_stds, par.minus_point_5) # NOTE why swap h and w?
 valid_dl = DataLoader(valid_dataset, batch_sampler=valid_sampler, num_workers=args.n_processors, pin_memory=par.pin_mem)
 
 # make second validtion dataset
@@ -101,7 +101,7 @@ if use_second_validation:
     valid_df2 = get_data_info(
         os.path.join(args.dataset2, 'images'), os.path.join(args.dataset2, 'poses_gt'), folder_list=args.valid_sequences2, seq_len_range=par.seq_len, overlap=1, sample_times=par.sample_times, max_step=par.max_step)
     valid_sampler2 = SortedRandomBatchSampler(valid_df2, args.batch_size, drop_last=True)
-    valid_dataset2 = ImageSequenceDataset(valid_df2, par.resize_mode, (par.img_h, par.img_w), par.img_means, par.img_stds, par.minus_point_5) # NOTE why swap h and w?
+    valid_dataset2 = ImageSequenceDataset(valid_df2, par.resize_mode, (par.img_w, par.img_h), par.img_means, par.img_stds, par.minus_point_5) # NOTE why swap h and w?
     valid_dl2 = DataLoader(valid_dataset2, batch_sampler=valid_sampler2, num_workers=args.n_processors, pin_memory=par.pin_mem)
 
 print('Number of samples in training dataset: ', len(train_df.index))
