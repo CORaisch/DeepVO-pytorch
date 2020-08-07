@@ -86,33 +86,33 @@ if __name__ == '__main__':
         # compare initial weights with trained ones
         model_w   = model.conv1[0].weight.data.numpy().copy()
         flownet_w = flownet_model.conv1[0].weight.data.numpy().copy()
-        comp = np.allclose(model_w, flownet_w, atol=1e-2)
-        print('conv1:','diff lies in (1e-3,1e-2], with range min:',np.min(flownet_w),'max:',np.max(flownet_w))
+        print(np.isclose(model_w, flownet_w, atol=1e-2))
+        print('conv1:','diff <= 1e-2, with range min:',np.min(flownet_w),'max:',np.max(flownet_w))
 
         model_w   = model.conv2[0].weight.data.numpy().copy()
         flownet_w = flownet_model.conv2[0].weight.data.numpy().copy()
-        comp = np.allclose(model_w, flownet_w, atol=1e-1)
-        print('conv2:','diff lies in (1e-2,1e-1], with range min:',np.min(flownet_w),'max:',np.max(flownet_w))
+        print(np.isclose(model_w, flownet_w, atol=1e-1))
+        print('conv2:','diff <= 1e-1, with range min:',np.min(flownet_w),'max:',np.max(flownet_w))
 
         model_w   = model.conv3[0].weight.data.numpy().copy()
         flownet_w = flownet_model.conv3[0].weight.data.numpy().copy()
-        comp = np.allclose(model_w, flownet_w, atol=1e-1)
-        print('conv3:','diff lies in (1e-2,1e-1], with range min:',np.min(flownet_w),'max:',np.max(flownet_w))
+        print(np.isclose(model_w, flownet_w, atol=1e-1))
+        print('conv3:','diff <= 1e-1, with range min:',np.min(flownet_w),'max:',np.max(flownet_w))
 
         model_w   = model.conv3_1[0].weight.data.numpy().copy()
         flownet_w = flownet_model.conv3_1[0].weight.data.numpy().copy()
-        comp = np.allclose(model_w, flownet_w, atol=1e-1)
-        print('conv3_1:','diff lies in (1e-2,1e-1], with range min:',np.min(flownet_w),'max:',np.max(flownet_w))
+        print(np.isclose(model_w, flownet_w, atol=1e-1))
+        print('conv3_1:','diff <= 1e-1, with range min:',np.min(flownet_w),'max:',np.max(flownet_w))
 
         model_w   = model.conv4[0].weight.data.numpy().copy()
         flownet_w = flownet_model.conv4[0].weight.data.numpy().copy()
-        comp = np.allclose(model_w, flownet_w, atol=1e-1)
-        print('conv4:','diff lies in (1e-2,1e-1], with range min:',np.min(flownet_w),'max:',np.max(flownet_w))
+        print(np.isclose(model_w, flownet_w, atol=1e-1))
+        print('conv4:','diff <= 1e-1, with range min:',np.min(flownet_w),'max:',np.max(flownet_w))
 
         model_w   = model.conv6[0].weight.data.numpy().copy()
         flownet_w = flownet_model.conv6[0].weight.data.numpy().copy()
-        comp = np.allclose(model_w, flownet_w, atol=1e-1)
-        print('conv6:','diff lies in (1e-2,1e-1], with range min:',np.min(flownet_w),'max:',np.max(flownet_w))
+        print(np.isclose(model_w, flownet_w, atol=1e-1))
+        print('conv6:','diff <= 1e-1, with range min:',np.min(flownet_w),'max:',np.max(flownet_w))
 
     # print(model.conv1[0].weight.data.shape)
 
