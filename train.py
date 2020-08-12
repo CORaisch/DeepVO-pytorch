@@ -32,6 +32,7 @@ argparser.add_argument('--model_load_path', '-load_model', type=str, default=Non
 argparser.add_argument('--optimizer_load_path', '-load_optim', type=str, default=None, help="optimizer to be loaded if training is resumed")
 argparser.add_argument('--optimizer_save_path', '-save_optim', type=str, default=None, help="path where optimizer will be saved (it will be named \'[--run_name]{_train,_valid}.optimizer\')")
 argparser.add_argument('--resume', '-resume', action='store_true', help="If set training will resume from model given by \'--model_load_path\' and \'--optimizer_load_path\'.")
+argparser.add_argument('--no_optim', '-no_optim', action='store_true', help="If set, when training is resumed optimizer will not be loaded")
 argparser.add_argument('--start_epoch', '-ep', type=int, default=0, help="specify where to start counting the epochs, only used when \'--resume\' is set (default: 0)")
 argparser.add_argument('--partition', '-p', type=float, default=0.8, help="set to number in range [0,1] to split train sequences into [-p]%% sequences for training and (1-[-p])%% for validation, will be ignored if [--valid_sequences] is set (default: 0.8)")
 argparser.add_argument('--max_step', '-s', type=int, default=None, help="if set > 1 for all subsequence each rand(1,max_step) will be skipped, this way more distances are simulated")
@@ -152,8 +153,9 @@ elif par.optim['opt'] == 'Cosine':
 if args.resume:
     print('Load Model from: ', args.model_load_path)
     M_deepvo.load_state_dict(torch.load(args.model_load_path))
-    print('Load Optimizer from: ', args.optimizer_load_path)
-    optimizer.load_state_dict(torch.load(args.optimizer_load_path))
+    if not args.no_optim:
+        print('Load Optimizer from: ', args.optimizer_load_path)
+        optimizer.load_state_dict(torch.load(args.optimizer_load_path))
 
 ## Setup Logging
 tb_dir = os.path.join(args.log_dir, 'tensorboard', args.run_name)
