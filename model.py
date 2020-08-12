@@ -3,6 +3,7 @@ from params import par
 # external dependencies
 import numpy as np
 import torch
+
 import torch.nn as nn
 from torch.autograd import Variable
 from torch.nn.init import kaiming_normal_, orthogonal_
@@ -38,17 +39,24 @@ class DeepVO(nn.Module):
         self.conv5_1 = conv(self.batchNorm, 512,  512, kernel_size=3, stride=1, dropout=par.conv_dropout[7])
         self.conv6   = conv(self.batchNorm, 512, 1024, kernel_size=3, stride=2, dropout=par.conv_dropout[8])
         # Comput the shape based on diff image size
-        __tmp = Variable(torch.zeros(1, 6, imsize1, imsize2))
+        __tmp = Variable(torch.zeros(3, 6, imsize1, imsize2)) #NOTE assuming seq_len==4
         __tmp = self.encode_image(__tmp)
 
         # RNN
-        self.rnn = nn.LSTM(
-                    input_size=int(np.prod(__tmp.size())),
-                    hidden_size=par.rnn_hidden_size,
-                    num_layers=2,
-                    dropout=par.rnn_dropout_between,
-                    batch_first=True)
-        self.rnn_drop_out = nn.Dropout(par.rnn_dropout_out)
+        # self.rnn = nn.LSTM(
+        #             input_size=int(np.prod(__tmp.size())),
+        #             hidden_size=par.rnn_hidden_size,
+        #             num_layers=2,
+        #             dropout=par.rnn_dropout_between,
+        #             batch_first=True)
+        # self.rnn_drop_out = nn.Dropout(par.rnn_dropout_out)
+        self.fc_group = nn.Sequential(
+            nn.Linear(int(np.prod(__tmp.size())), par.rnn_hidden_size),
+            nn.ReLU(),
+            nn.Linear(par.rnn_hidden_size, par.rnn_hidden_size),
+            nn.ReLU()
+        )
+
         self.linear = nn.Linear(in_features=par.rnn_hidden_size, out_features=6)
 
         # Initilization
@@ -81,7 +89,6 @@ class DeepVO(nn.Module):
                 m.weight.data.fill_(1)
                 m.bias.data.zero_()
 
-
     def forward(self, x):
         # x  : (batch, seq_len, channel, width, height)
         # out: (batch, seq_len, 6)
@@ -92,12 +99,13 @@ class DeepVO(nn.Module):
         # CNN
         x = x.view(batch_size*seq_len, x.size(2), x.size(3), x.size(4))
         x = self.encode_image(x)
-        x = x.view(batch_size, seq_len, -1)
+        x = x.view(batch_size, -1)
 
 
         # RNN
-        out, hc = self.rnn(x)
-        out = self.rnn_drop_out(out)
+        # out, hc = self.rnn(x)
+        out = self.fc_group(x)
+        # out = self.rnn_drop_out(out)
         out = self.linear(out)
         return out
 
@@ -119,8 +127,8 @@ class DeepVO(nn.Module):
     def get_loss(self, x, y):
         predicted = self.forward(x)
         # Weighted MSE Loss
-        angle_loss = torch.nn.functional.mse_loss(predicted[:,:,:3], y[:,:,:3])
-        translation_loss = torch.nn.functional.mse_loss(predicted[:,:,3:], y[:,:,3:])
+        angle_loss = torch.nn.functional.mse_loss(predicted[:,:3], y[:,1,:3]) # NOTE assuming seq_len==4: estimate motion between center images
+        translation_loss = torch.nn.functional.mse_loss(predicted[:,3:], y[:,1,3:]) # NOTE assuming seq_len==4: estimate motion between center images
         loss = (100 * angle_loss + translation_loss)
         return loss
 
@@ -128,7 +136,7 @@ class DeepVO(nn.Module):
         optimizer.zero_grad()
         loss = self.get_loss(x, y)
         loss.backward()
-        if self.clip != None:
-            torch.nn.utils.clip_grad_norm(self.rnn.parameters(), self.clip)
+        # if self.clip != None:
+        #     torch.nn.utils.clip_grad_norm(self.rnn.parameters(), self.clip)
         optimizer.step()
         return loss
