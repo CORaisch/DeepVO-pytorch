@@ -116,6 +116,6 @@ if __name__ == '__main__':
 
     # print(model.conv1[0].weight.data.shape)
 
-    # name = 'flownet.png' if args.flownet else 'filters.png'
-    # plot_filters_single_channel(model.conv1[0].weight.data, im_r=True, fname=name)
+    name = 'flownet.png' if args.flownet else 'filters.png'
+    plot_filters_single_channel(model.conv1[0].weight.data, im_r=True, fname=name)
 
