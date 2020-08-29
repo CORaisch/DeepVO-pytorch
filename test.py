@@ -76,14 +76,14 @@ if __name__ == '__main__':
         print('exp. #sub-sequences = {}, exp. #batches = {}'.format(n_poses-overlap, ceil((n_poses-overlap)/args.batch_size)))
 
         # make dataloader
-        df = get_data_info(image_dir, pose_dir, folder_list=[test_seq], seq_len_range=[seq_len, seq_len], overlap=overlap, sample_times=1, shuffle=False, sort=False)
+        df = get_data_info(image_dir, pose_dir, folder_list=[test_seq], seq_len_range=[seq_len, seq_len], overlap=3, sample_times=1, shuffle=False, sort=False) # NOTE assuming seq_len==4
         df = df.loc[df.seq_len == seq_len]  # drop last
         dataset = ImageSequenceDataset(df, par.resize_mode, (par.img_w, par.img_h), par.img_means, par.img_stds, par.minus_point_5)
         dataloader = DataLoader(dataset, batch_size=args.batch_size, drop_last=False, shuffle=False, num_workers=n_workers)
 
         # loop over batched sub-sequences
         M_deepvo.eval()
-        trajectory = [ np.matrix(np.eye(4, dtype=np.float)) ]
+        trajectory = [ np.matrix(np.eye(4, dtype=np.float)), np.matrix(np.eye(4, dtype=np.float)) ]
         n_batch = len(dataloader)
 
         for i, batch in enumerate(dataloader):
@@ -99,25 +99,15 @@ if __name__ == '__main__':
 
             # integrate all poses of first predicted sequence
             pred_batch = pred_batch.data.cpu().numpy()
-            if i == 0:
-                for pose in pred_batch[0]:
-                    # get relative pose
-                    if args.only_yaw:
-                        pose[0] = 0; pose[2] = 0;
-                    T = euler_to_mat(pose)
-                    # integrate abs pose
-                    trajectory.append(trajectory[-1]*T)
-                pred_batch = pred_batch[1:] # remove first element in batch
-
-            # for all further predictions only integrate the last pose, since overlap=seq_len-1
-            for pred_seq in pred_batch:
-                pose = pred_seq[-1]
+            for pose in pred_batch:
                 # get relative pose
                 if args.only_yaw:
                     pose[0] = 0; pose[2] = 0;
                 T = euler_to_mat(pose)
                 # integrate abs pose
                 trajectory.append(trajectory[-1]*T)
+        # append last motion twice since last transform cannot be estimated due to end of sequence
+        trajectory.append(trajectory[-1]*T)
 
         # print status
         delta_t = time.localtime(time.time() - st_t)
